@@ -1,6 +1,6 @@
 # DocRequest — Build plan
 
-Source of truth: `PRD.md`. Stack and rules: the project rules. Status: **waiting for go**.
+Source of truth: `PRD.md`. Stack and rules: the project rules. Status: **approved — building**.
 
 ## Data model (Prisma, PostgreSQL 18)
 
@@ -17,16 +17,16 @@ Every table: UUIDv7 `id`, `createdAt`, `updatedAt` (UTC). Every tenant table has
 | `TemplateItem` | templateId, position, title, helpText, required, allowedTypes `enum[]` (PDF/JPEG/PNG/HEIC) |
 | `Request` | workspaceId, createdById, clientName, clientEmail, dueDate?, message?, status `DRAFT/SENT/IN_PROGRESS/COMPLETE/EXPIRED`, linkHash (unique), linkExpiresAt, sentAt, completedAt, expiredAt, filesDeletedAt |
 | `RequestItem` | requestId, workspaceId, position, title, helpText, required, allowedTypes, status `PENDING/SUBMITTED/ACCEPTED/REJECTED`, rejectReason |
-| `File` | requestItemId, workspaceId, storageKey (random), wrappedKey, iv, authTag, mimeType, size, originalExt, scanStatus `PENDING/CLEAN/INFECTED/SKIPPED`, deletedAt |
+| `File` | requestItemId, workspaceId, storageKey (random), wrappedKey, iv, authTag, mimeType, size, originalExt, scanStatus `PENDING/CLEAN/INFECTED/SKIPPED`, deletedAt. Infected → stored bytes deleted, row kept with `INFECTED`, item back to `PENDING`, client sees "this file couldn't be accepted, please upload it again", audit entry. |
 | `Reminder` | requestId, kind (`DAY_2`, `DUE`, `MANUAL`…), sentAt — unique (requestId, kind) for auto kinds, so a reminder can never send twice |
-| `Export` | requestId, workspaceId, storageKey, status, expiresAt (zip removed after 1 hour) |
+| `Export` | requestId, workspaceId, storageKey, wrappedKey, iv, authTag, status, expiresAt — zip encrypted with the same envelope encryption as uploads, deleted after 1 hour |
 | `AuditLog` | workspaceId, actorType `USER/CLIENT/SYSTEM`, actorId?, action, entityType, entityId, at — append-only (DB trigger blocks UPDATE/DELETE, added via a Prisma `--create-only` migration). Never file names or client details. |
 
 **Overdue** is not stored: it is `dueDate < now` and status SENT/IN_PROGRESS, applied in the list query. Login codes, client codes and client sessions live in Redis (short TTL, hashed, max 5 attempts).
 
 ## NestJS modules (`apps/api`)
 
-- `auth` — signup, login step 1 (password) → step 2 (6-digit email code) → access JWT (15 min) + rotating refresh (30 days), both `httpOnly Secure SameSite=Strict` cookies. Logout, password reset. Global `AuthGuard` (deny by default, `@Public()`), `RolesGuard` (`@Roles()`), membership loaded per request from `/w/:workspaceId/...`.
+- `auth` — signup, login step 1 (password) → step 2 (6-digit email code) → access JWT (15 min) + rotating refresh (30 days), both `httpOnly Secure SameSite=Lax` cookies, plus an Origin check on every state-changing request (POST/PUT/PATCH/DELETE) so links clicked from emails still work. Logout, password reset. Global `AuthGuard` (deny by default, `@Public()`), `RolesGuard` (`@Roles()`), membership loaded per request from `/w/:workspaceId/...`.
 - `workspaces` — settings, members, invites, role changes (Owner can't be removed or demoted by Admin).
 - `templates` — CRUD + 5 built-in templates (seeded, copyable, read-only).
 - `requests` — create (from template or blank), edit items, send, resend link, list with filters/search, cancel.
@@ -37,8 +37,8 @@ Every table: UUIDv7 `id`, `createdAt`, `updatedAt` (UTC). Every tenant table has
 - `retention` — expiry and file deletion sweep.
 - `audit` — write helper + read endpoint (Owner/Admin).
 - `mail` — templates; drivers `smtp` | `file` (file = demo/dev mail folder).
-- `demo` — seed, mail viewer, hourly upload purge, nightly reset (only when `DEMO_MODE=true`).
-- `worker` (same app, separate entry) — BullMQ queues: `mail`, `scan` (ClamAV clamd INSTREAM, small client written in-house), `convert` (HEIC→JPEG, resize big images), `export` (zip), `sweeps` (repeatable: reminders hourly, expiry + retention daily, demo jobs).
+- `demo` — seed, one-click demo login, mail viewer, hourly upload purge, nightly reset (only when `DEMO_MODE=true`). In demo, signup is disabled and the demo workspace's settings and team are read-only.
+- `worker` (same app, separate entry) — BullMQ queues: `mail`, `scan` (ClamAV clamd INSTREAM, small client written in-house), `convert` (concurrency 1: HEIC→JPEG, resize big images, re-encode every image with sharp to strip EXIF incl. GPS), `export` (zip), `sweeps` (repeatable: reminders hourly, expiry + retention daily, demo jobs).
 - Rate limiting: small Redis fixed-window guard (`@RateLimit()`) on login, code send/verify, password reset, link opens, uploads.
 
 Validation: Zod schemas in `packages/shared`, passed to NestJS 12's `@Body/@Query/@Param({ schema })`; unknown fields stripped. Response DTOs mapped explicitly.
@@ -55,12 +55,12 @@ GET/POST w/:wid/templates · GET/PATCH/DELETE w/:wid/templates/:id        (write
 GET/POST w/:wid/requests · GET/PATCH/DELETE w/:wid/requests/:id
 PUT  w/:wid/requests/:id/items · POST w/:wid/requests/:id/send|remind|cancel
 POST w/:wid/requests/:id/items/:itemId/accept|reject
-GET  w/:wid/files/:fileId (stream, audited)
+GET  w/:wid/files/:fileId (stream, audited; Content-Disposition, nosniff, sandboxed CSP)
 POST w/:wid/requests/:id/export · GET w/:wid/exports/:id · GET w/:wid/exports/:id/download
 GET  w/:wid/audit                                                       (Owner/Admin)
 POST client/open · client/code · client/verify                          (public, rate-limited)
 GET  client/request · POST client/items/:itemId/files · DELETE client/files/:id (client session)
-GET  demo/mail                                                          (public, DEMO_MODE only)
+GET  demo/mail · POST demo/login                                        (public, DEMO_MODE only)
 ```
 
 ## Pages (`apps/web`, shadcn/ui; `/api/*` proxied to the API so cookies stay first-party)
@@ -80,20 +80,20 @@ Tests: isolation + roles on templates/requests, link stored only as hash.
 Tests: link/code security (expiry, wrong code, attempts, session scoped to one request), encryption round-trip, wrong-key fails.
 
 **Phase 4 — Review and download.** Preview through API (only `CLEAN`/`SKIPPED` files), accept/reject with reason, completion rule, zip export job with clean names (`smith-jane_passport.pdf`), audit entries + audit page.
-Tests: file access permissions and isolation, completion rule.
+Tests: file access permissions and isolation, infected or unscanned files never previewable/downloadable, exports respect workspace isolation, completion rule, audit rows never contain client names, emails or file names.
 
-**Phase 5 — Reminders, expiry, retention.** Hourly reminder sweep (workspace schedule + before-due, stop on complete, idempotent), manual remind, daily expiry + retention deletion with audit log.
-Tests: reminder scheduling, retention deletion.
+**Phase 5 — Reminders, expiry, retention.** Hourly reminder sweep (workspace schedule + before-due, stop on complete, idempotent), manual remind, daily expiry + retention deletion: files deleted, `clientName`/`clientEmail` anonymised, request row kept for counts only, audited.
+Tests: reminder scheduling, retention deletion, retention anonymises client details.
 
-**Phase 6 — Demo mode and self-hosting.** Demo seed with fake files, banner, mail viewer, 2 MB limit, hourly purge, nightly reset. Dockerfiles + full `docker-compose.yml` (web, api, worker, postgres, redis, clamav). `infra/aws` Terraform (S3, KMS, RDS, small EC2) + teardown. README per PRD §5, `ASSUMPTIONS.md`, `docs/decisions/`.
+**Phase 6 — Demo mode and self-hosting.** Demo seed with fake files, banner, one-click demo login, signup off, read-only settings/team, mail viewer, 2 MB limit, hourly purge, nightly reset. Dockerfiles + full `docker-compose.yml` (web, api, worker, postgres, redis, clamav). `infra/aws` Terraform (S3, KMS, RDS, small EC2) + teardown. README per PRD §5, `ASSUMPTIONS.md`, `docs/decisions/`.
 
 Each phase ends with: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`, security sweep, `pnpm audit`, then marked done here.
 
-## New libraries — need your OK (approving this plan approves them)
+## Libraries (approved)
 
 `argon2` (passwords) · `@nestjs/jwt` (access tokens) · `nodemailer` (email) · `file-type` (content type check) · `sharp` (resize) · `heic-convert` (HEIC→JPEG; sharp's prebuilt binaries don't decode HEIC) · `archiver` (zip) · `@aws-sdk/client-s3`, `@aws-sdk/client-kms` (optional drivers) · `cookie-parser` and `helmet` (skipped if NestJS 12.1 built-ins cover cookies and headers).
 
-## Assumptions to confirm
+## Assumptions (approved)
 
 1. **Signup:** open signup creates a workspace + Owner; self-hosters can switch it off with `SIGNUP_ENABLED=false`.
 2. **Password reset** is included (not in PRD, but the project rules rule 4 expects it).
