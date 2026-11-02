@@ -18,9 +18,15 @@ describe('rate limits', () => {
     await createUser(ctx, 'owner@example.com');
     const http = request(ctx.app.getHttpServer());
     for (let i = 0; i < 10; i++) {
-      await http.post('/api/auth/login').send({ email: 'owner@example.com', password: 'wrong password!' }).expect(401);
+      await http
+        .post('/api/auth/login')
+        .send({ email: 'owner@example.com', password: 'wrong password!' })
+        .expect(401);
     }
-    await http.post('/api/auth/login').send({ email: 'owner@example.com', password: PASSWORD }).expect(429);
+    await http
+      .post('/api/auth/login')
+      .send({ email: 'owner@example.com', password: PASSWORD })
+      .expect(429);
   });
 
   it('limits code verification attempts per IP', async () => {
@@ -67,7 +73,10 @@ describe('cross-site request protection', () => {
       .set('Origin', 'http://localhost:8020')
       .send({ name: 'Renamed' })
       .expect(200);
-    await agent.get(`/api/w/${workspaceId}/settings`).set('Origin', 'https://evil.example').expect(200);
+    await agent
+      .get(`/api/w/${workspaceId}/settings`)
+      .set('Origin', 'https://evil.example')
+      .expect(200);
   });
 });
 

@@ -21,6 +21,28 @@ enum ActorType {
   SYSTEM
 }
 
+enum FileType {
+  PDF
+  JPEG
+  PNG
+  HEIC
+}
+
+enum RequestStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETE
+  EXPIRED
+}
+
+enum ItemStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id           String         @id @default(uuid(7)) @db.Uuid
   email        String         @unique
@@ -30,6 +52,7 @@ model User {
   updatedAt    DateTime       @updatedAt
   memberships  Membership[]
   refreshTokens RefreshToken[]
+  requests     Request[]
 }
 
 model Workspace {
@@ -44,6 +67,8 @@ model Workspace {
   updatedAt       DateTime     @updatedAt
   memberships     Membership[]
   invites         Invite[]
+  templates       Template[]
+  requests        Request[]
 }
 
 model Membership {
@@ -103,9 +128,88 @@ model AuditLog {
   action      String
   entityType  String
   entityId    String?   @db.Uuid
+  /// Set for anything that happens to a request, its items or files (activity feed).
+  requestId   String?   @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@index([workspaceId, createdAt])
   @@index([entityId])
+  @@index([requestId])
+}
+
+/// A workspace's own checklist. Built-in templates live in code (packages/shared).
+model Template {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  workspaceId String         @db.Uuid
+  name        String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items       TemplateItem[]
+
+  @@index([workspaceId])
+}
+
+model TemplateItem {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  templateId   String     @db.Uuid
+  position     Int
+  title        String
+  helpText     String     @default("")
+  required     Boolean    @default(true)
+  allowedTypes FileType[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  template     Template   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model Request {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  workspaceId   String        @db.Uuid
+  createdById   String?       @db.Uuid
+  checklistName String        @default("")
+  clientName    String
+  clientEmail   String
+  dueDate       DateTime?     @db.Date
+  message       String        @default("")
+  status        RequestStatus @default(DRAFT)
+  /// SHA-256 of the client link token. The token itself is never stored.
+  linkHash      String?       @unique
+  linkExpiresAt DateTime?
+  sentAt        DateTime?
+  completedAt   DateTime?
+  expiredAt     DateTime?
+  filesDeletedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items         RequestItem[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, dueDate])
+  @@index([createdById])
+}
+
+model RequestItem {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  requestId    String     @db.Uuid
+  workspaceId  String     @db.Uuid
+  position     Int
+  title        String
+  helpText     String     @default("")
+  required     Boolean    @default(true)
+  allowedTypes FileType[]
+  status       ItemStatus @default(PENDING)
+  rejectReason String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  request      Request    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([workspaceId, status])
 }

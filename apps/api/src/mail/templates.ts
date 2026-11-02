@@ -6,7 +6,38 @@ export interface MailMessage {
 
 const footer = '\n\n— DocRequest';
 
+const ukDate = (d: Date) =>
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(d);
+
 export const mailTemplates = {
+  /** First email to the client, and any resend. Contains the only copy of the link token. */
+  requestLink: (
+    to: string,
+    p: {
+      clientName: string;
+      workspaceName: string;
+      itemCount: number;
+      dueDate: Date | null;
+      message: string;
+      link: string;
+    },
+  ): MailMessage => ({
+    to,
+    subject: `${p.workspaceName} needs ${p.itemCount} document${p.itemCount === 1 ? '' : 's'} from you`,
+    text:
+      `Hi ${p.clientName},\n\n` +
+      (p.message ? `${p.message}\n\n` : '') +
+      `${p.workspaceName} has asked you for ${p.itemCount} document${p.itemCount === 1 ? '' : 's'}` +
+      (p.dueDate ? `, by ${ukDate(p.dueDate)}` : '') +
+      `.\n\nOpen your secure link to upload them from your phone or computer:\n${p.link}\n\n` +
+      `This link is only for you. We'll email you a 6-digit code to confirm it's you. ` +
+      `You can come back to it any time until everything is done.${footer}`,
+  }),
   loginCode: (to: string, code: string): MailMessage => ({
     to,
     subject: `Your DocRequest sign-in code: ${code}`,

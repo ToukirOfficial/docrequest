@@ -37,7 +37,10 @@ export class TokensService {
         expiresAt: new Date(Date.now() + REFRESH_TTL_SEC * 1000),
       },
     });
-    const access = await this.jwt.signAsync({ sub: userId, typ: 'access' }, { expiresIn: ACCESS_TTL_SEC });
+    const access = await this.jwt.signAsync(
+      { sub: userId, typ: 'access' },
+      { expiresIn: ACCESS_TTL_SEC },
+    );
     setCookie(res, ACCESS_COOKIE, access, ACCESS_TTL_SEC);
     setCookie(res, REFRESH_COOKIE, refresh, REFRESH_TTL_SEC);
   }
@@ -45,7 +48,9 @@ export class TokensService {
   async rotate(res: Response, refresh: string | undefined): Promise<void> {
     if (!refresh) throw new UnauthorizedException();
     const now = new Date();
-    const token = await this.prisma.refreshToken.findUnique({ where: { tokenHash: sha256(refresh) } });
+    const token = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: sha256(refresh) },
+    });
     if (!token) throw this.fail(res);
 
     if (token.usedAt || token.revokedAt) {
@@ -77,7 +82,9 @@ export class TokensService {
 
   async revokeByToken(refresh: string | undefined): Promise<string | undefined> {
     if (!refresh) return undefined;
-    const token = await this.prisma.refreshToken.findUnique({ where: { tokenHash: sha256(refresh) } });
+    const token = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: sha256(refresh) },
+    });
     if (!token) return undefined;
     await this.revokeFamily(token.familyId);
     return token.userId;

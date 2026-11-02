@@ -48,9 +48,18 @@ export class AuthService {
         data: { email: input.email, name: input.name, passwordHash },
       });
       const workspace = await tx.workspace.create({ data: { name: input.workspaceName } });
-      await tx.membership.create({ data: { userId: user.id, workspaceId: workspace.id, role: 'OWNER' } });
+      await tx.membership.create({
+        data: { userId: user.id, workspaceId: workspace.id, role: 'OWNER' },
+      });
       await this.audit.log(
-        { workspaceId: workspace.id, actorType: 'USER', actorId: user.id, action: 'auth.signup', entityType: 'workspace', entityId: workspace.id },
+        {
+          workspaceId: workspace.id,
+          actorType: 'USER',
+          actorId: user.id,
+          action: 'auth.signup',
+          entityType: 'workspace',
+          entityId: workspace.id,
+        },
         tx,
       );
       return user;
@@ -74,7 +83,9 @@ export class AuthService {
 
   /** Step 2: the emailed code. Max 5 tries per code, then a fresh login is needed. */
   async verifyLogin(challengeId: string | undefined, code: string, res: Response): Promise<void> {
-    const invalid = new UnauthorizedException('That code is wrong or has expired. Please sign in again.');
+    const invalid = new UnauthorizedException(
+      'That code is wrong or has expired. Please sign in again.',
+    );
     if (!challengeId) throw invalid;
     const key = `login:${sha256(challengeId)}`;
     const attempts = await this.redis.hincrby(key, 'attempts', 1);
@@ -94,14 +105,26 @@ export class AuthService {
     await this.redis.del(key);
     clearCookie(res, LOGIN_COOKIE);
     await this.tokens.issue(res, userId);
-    await this.audit.log({ actorType: 'USER', actorId: userId, action: 'auth.login', entityType: 'user', entityId: userId });
+    await this.audit.log({
+      actorType: 'USER',
+      actorId: userId,
+      action: 'auth.login',
+      entityType: 'user',
+      entityId: userId,
+    });
   }
 
   async logout(refresh: string | undefined, res: Response): Promise<void> {
     const userId = await this.tokens.revokeByToken(refresh);
     this.tokens.clear(res);
     if (userId) {
-      await this.audit.log({ actorType: 'USER', actorId: userId, action: 'auth.logout', entityType: 'user', entityId: userId });
+      await this.audit.log({
+        actorType: 'USER',
+        actorId: userId,
+        action: 'auth.logout',
+        entityType: 'user',
+        entityId: userId,
+      });
     }
   }
 
@@ -122,7 +145,13 @@ export class AuthService {
     const passwordHash = await hashPassword(input.password);
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
     await this.tokens.revokeAllForUser(userId);
-    await this.audit.log({ actorType: 'USER', actorId: userId, action: 'auth.password_reset', entityType: 'user', entityId: userId });
+    await this.audit.log({
+      actorType: 'USER',
+      actorId: userId,
+      action: 'auth.password_reset',
+      entityType: 'user',
+      entityId: userId,
+    });
   }
 
   async me(userId: string): Promise<MeResponse> {

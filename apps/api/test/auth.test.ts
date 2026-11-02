@@ -65,7 +65,10 @@ describe('login with password and email code', () => {
   it('locks the code after 5 wrong attempts, even if the right code follows', async () => {
     await createUser(ctx, 'owner@example.com');
     const agent = request.agent(ctx.app.getHttpServer());
-    await agent.post('/api/auth/login').send({ email: 'owner@example.com', password: PASSWORD }).expect(200);
+    await agent
+      .post('/api/auth/login')
+      .send({ email: 'owner@example.com', password: PASSWORD })
+      .expect(200);
     const code = codeFrom(await lastMailTo(ctx, 'owner@example.com'));
     const wrong = code === '000000' ? '111111' : '000000';
     for (let i = 0; i < 5; i++) {
@@ -82,14 +85,22 @@ describe('login with password and email code', () => {
       .send({ email: 'owner@example.com', password: PASSWORD })
       .expect(200);
     const code = codeFrom(await lastMailTo(ctx, 'owner@example.com'));
-    await request(ctx.app.getHttpServer()).post('/api/auth/login/verify').send({ code }).expect(401);
+    await request(ctx.app.getHttpServer())
+      .post('/api/auth/login/verify')
+      .send({ code })
+      .expect(401);
   });
 
   it('signup creates a workspace and requires the email code', async () => {
     const agent = request.agent(ctx.app.getHttpServer());
     await agent
       .post('/api/auth/signup')
-      .send({ name: 'Sam Example', email: 'Sam@Example.com', password: PASSWORD, workspaceName: 'Example Ltd' })
+      .send({
+        name: 'Sam Example',
+        email: 'Sam@Example.com',
+        password: PASSWORD,
+        workspaceName: 'Example Ltd',
+      })
       .expect(201);
     await agent.get('/api/auth/me').expect(401);
     const code = codeFrom(await lastMailTo(ctx, 'sam@example.com'));

@@ -88,7 +88,10 @@ export async function login(ctx: TestContext, email: string): Promise<TestAgent>
   return agent;
 }
 
-export function cookieValue(res: { headers: Record<string, unknown> }, name: string): string | undefined {
+export function cookieValue(
+  res: { headers: Record<string, unknown> },
+  name: string,
+): string | undefined {
   const raw = res.headers['set-cookie'];
   const list = Array.isArray(raw) ? (raw as string[]) : [];
   for (const c of list) {

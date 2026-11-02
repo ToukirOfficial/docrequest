@@ -30,10 +30,18 @@ export function setCookie(res: Response, name: string, value: string, maxAgeSec:
 }
 
 export function clearCookie(res: Response, name: string): void {
-  res.clearCookie(name, { httpOnly: true, secure: isProd, sameSite: 'lax', path: paths[name] ?? '/api' });
+  res.clearCookie(name, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: paths[name] ?? '/api',
+  });
 }
 
-export function readCookie(req: { headers: { cookie?: string } }, name: string): string | undefined {
+export function readCookie(
+  req: { headers: { cookie?: string } },
+  name: string,
+): string | undefined {
   const header = req.headers.cookie;
   if (!header) return undefined;
   for (const part of header.split(';')) {

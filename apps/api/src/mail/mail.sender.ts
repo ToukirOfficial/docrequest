@@ -18,7 +18,12 @@ export function createMailSender(): (message: MailMessage) => Promise<void> {
   const dir = resolve(env.MAIL_DIR);
   const transport = nodemailer.createTransport({ streamTransport: true, buffer: true });
   return async (m) => {
-    const info = await transport.sendMail({ from: env.MAIL_FROM, to: m.to, subject: m.subject, text: m.text });
+    const info = await transport.sendMail({
+      from: env.MAIL_FROM,
+      to: m.to,
+      subject: m.subject,
+      text: m.text,
+    });
     await mkdir(dir, { recursive: true });
     const name = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.eml`;
     await writeFile(join(dir, name), info.message as Buffer, { mode: 0o600 });

@@ -7,6 +7,7 @@ import { RateLimitGuard } from './common/rate-limit.js';
 import { AuthGuard } from './common/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
+import { RequestsModule } from './requests/requests.module.js';
 import { HealthController } from './health.controller.js';
 
 @Module({
@@ -19,6 +20,7 @@ import { HealthController } from './health.controller.js';
     CommonModule,
     AuthModule,
     WorkspacesModule,
+    RequestsModule,
   ],
   controllers: [HealthController],
   providers: [

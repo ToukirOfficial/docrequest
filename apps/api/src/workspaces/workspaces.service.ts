@@ -41,9 +41,16 @@ export class WorkspacesService {
     return toSettings(w);
   }
 
-  async updateSettings(member: WorkspaceMember, user: AuthUser, input: UpdateSettingsInput): Promise<WorkspaceSettings> {
+  async updateSettings(
+    member: WorkspaceMember,
+    user: AuthUser,
+    input: UpdateSettingsInput,
+  ): Promise<WorkspaceSettings> {
     this.denyDemo(member);
-    const w = await this.prisma.workspace.update({ where: { id: member.workspaceId }, data: input });
+    const w = await this.prisma.workspace.update({
+      where: { id: member.workspaceId },
+      data: input,
+    });
     await this.audit.log({
       workspaceId: member.workspaceId,
       actorType: 'USER',
@@ -71,7 +78,12 @@ export class WorkspacesService {
     }));
   }
 
-  async updateMember(member: WorkspaceMember, user: AuthUser, memberId: string, input: UpdateMemberInput): Promise<Member> {
+  async updateMember(
+    member: WorkspaceMember,
+    user: AuthUser,
+    memberId: string,
+    input: UpdateMemberInput,
+  ): Promise<Member> {
     this.denyDemo(member);
     const target = await this.findTarget(member, memberId);
     this.assertCanManage(member, target.role, target.id);
@@ -105,7 +117,14 @@ export class WorkspacesService {
     await this.prisma.$transaction(async (tx) => {
       await tx.membership.delete({ where: { id: target.id } });
       await this.audit.log(
-        { workspaceId: member.workspaceId, actorType: 'USER', actorId: user.id, action: 'member.removed', entityType: 'membership', entityId: target.id },
+        {
+          workspaceId: member.workspaceId,
+          actorType: 'USER',
+          actorId: user.id,
+          action: 'member.removed',
+          entityType: 'membership',
+          entityId: target.id,
+        },
         tx,
       );
     });
@@ -125,7 +144,11 @@ export class WorkspacesService {
     }));
   }
 
-  async createInvite(member: WorkspaceMember, user: AuthUser, input: CreateInviteInput): Promise<PendingInvite> {
+  async createInvite(
+    member: WorkspaceMember,
+    user: AuthUser,
+    input: CreateInviteInput,
+  ): Promise<PendingInvite> {
     this.denyDemo(member);
     const already = await this.prisma.membership.findFirst({
       where: { workspaceId: member.workspaceId, user: { email: input.email } },
@@ -133,10 +156,14 @@ export class WorkspacesService {
     if (already) throw new ConflictException('This person is already in your team');
 
     const token = randomToken();
-    const workspace = await this.prisma.workspace.findUniqueOrThrow({ where: { id: member.workspaceId } });
+    const workspace = await this.prisma.workspace.findUniqueOrThrow({
+      where: { id: member.workspaceId },
+    });
     const invite = await this.prisma.$transaction(async (tx) => {
       // A new invite replaces any older pending one for the same email.
-      await tx.invite.deleteMany({ where: { workspaceId: member.workspaceId, email: input.email, acceptedAt: null } });
+      await tx.invite.deleteMany({
+        where: { workspaceId: member.workspaceId, email: input.email, acceptedAt: null },
+      });
       const invite = await tx.invite.create({
         data: {
           workspaceId: member.workspaceId,
@@ -148,12 +175,21 @@ export class WorkspacesService {
         },
       });
       await this.audit.log(
-        { workspaceId: member.workspaceId, actorType: 'USER', actorId: user.id, action: 'member.invited', entityType: 'invite', entityId: invite.id },
+        {
+          workspaceId: member.workspaceId,
+          actorType: 'USER',
+          actorId: user.id,
+          action: 'member.invited',
+          entityType: 'invite',
+          entityId: invite.id,
+        },
         tx,
       );
       return invite;
     });
-    await this.mail.send(mailTemplates.invite(input.email, workspace.name, `${env.WEB_ORIGIN}/invite/${token}`));
+    await this.mail.send(
+      mailTemplates.invite(input.email, workspace.name, `${env.WEB_ORIGIN}/invite/${token}`),
+    );
     return {
       id: invite.id,
       email: invite.email,
@@ -172,7 +208,14 @@ export class WorkspacesService {
     await this.prisma.$transaction(async (tx) => {
       await tx.invite.delete({ where: { id: invite.id } });
       await this.audit.log(
-        { workspaceId: member.workspaceId, actorType: 'USER', actorId: user.id, action: 'member.invite_revoked', entityType: 'invite', entityId: invite.id },
+        {
+          workspaceId: member.workspaceId,
+          actorType: 'USER',
+          actorId: user.id,
+          action: 'member.invite_revoked',
+          entityType: 'invite',
+          entityId: invite.id,
+        },
         tx,
       );
     });
@@ -180,7 +223,10 @@ export class WorkspacesService {
 
   async previewInvite(token: string): Promise<InvitePreview> {
     const invite = await this.findValidInvite(token);
-    const existing = await this.prisma.user.findUnique({ where: { email: invite.email }, select: { id: true } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: invite.email },
+      select: { id: true },
+    });
     return {
       workspaceName: invite.workspace.name,
       email: invite.email,
@@ -193,7 +239,11 @@ export class WorkspacesService {
    * Existing users must be signed in as the invited email.
    * New users choose a name and password, then sign in normally (with a code).
    */
-  async acceptInvite(token: string, input: AcceptInviteInput, caller: AuthUser | undefined): Promise<void> {
+  async acceptInvite(
+    token: string,
+    input: AcceptInviteInput,
+    caller: AuthUser | undefined,
+  ): Promise<void> {
     const invite = await this.findValidInvite(token);
     const existing = await this.prisma.user.findUnique({ where: { email: invite.email } });
 
@@ -204,7 +254,8 @@ export class WorkspacesService {
       }
       userId = existing.id;
     } else {
-      if (!input.name || !input.password) throw new BadRequestException('Name and password are required');
+      if (!input.name || !input.password)
+        throw new BadRequestException('Name and password are required');
       const passwordHash = await hashPassword(input.password);
       const created = await this.prisma.user.create({
         data: { email: invite.email, name: input.name, passwordHash },
@@ -224,7 +275,14 @@ export class WorkspacesService {
         update: {},
       });
       await this.audit.log(
-        { workspaceId: invite.workspaceId, actorType: 'USER', actorId: userId, action: 'member.joined', entityType: 'membership', entityId: membership.id },
+        {
+          workspaceId: invite.workspaceId,
+          actorType: 'USER',
+          actorId: userId,
+          action: 'member.joined',
+          entityType: 'membership',
+          entityId: membership.id,
+        },
         tx,
       );
     });
@@ -251,7 +309,8 @@ export class WorkspacesService {
 
   /** Nobody changes the Owner or themselves; Admins can only manage Staff. */
   private assertCanManage(actor: WorkspaceMember, targetRole: string, targetId: string): void {
-    if (targetId === actor.membershipId) throw new ForbiddenException('You cannot change your own membership');
+    if (targetId === actor.membershipId)
+      throw new ForbiddenException('You cannot change your own membership');
     if (targetRole === 'OWNER') throw new ForbiddenException('The owner cannot be changed');
     if (actor.role === 'ADMIN' && targetRole !== 'STAFF') {
       throw new ForbiddenException('Admins can only manage staff');

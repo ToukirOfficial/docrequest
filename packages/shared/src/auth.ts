@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  codeSchema,
-  emailSchema,
-  nameSchema,
-  passwordSchema,
-  tokenSchema,
-} from './common.js';
+import { codeSchema, emailSchema, nameSchema, passwordSchema, tokenSchema } from './common.js';
 
 export const roleSchema = z.enum(['OWNER', 'ADMIN', 'STAFF']);
 export type Role = z.infer<typeof roleSchema>;

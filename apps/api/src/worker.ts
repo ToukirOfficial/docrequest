@@ -19,7 +19,9 @@ const workers = [
 
 for (const w of workers) {
   // Log job ids only: never email addresses or content.
-  w.on('failed', (job, err) => logger.warn(`${w.name} job ${job?.id ?? '?'} failed: ${err.message}`));
+  w.on('failed', (job, err) =>
+    logger.warn(`${w.name} job ${job?.id ?? '?'} failed: ${err.message}`),
+  );
 }
 logger.log('Worker started');
 

@@ -2,149 +2,27 @@
 
 import { useState } from 'react';
 import { Check } from 'lucide-react';
+import { BUILTIN_TEMPLATES } from '@docrequest/shared';
 import { cn } from '@/lib/utils';
 
-/* The five built-in checklists clients receive (PRD §3, item 4). */
-
-type Item = { title: string; help: string; types: string[]; optional?: boolean };
 interface Template {
   name: string;
   usedBy: string;
-  items: Item[];
+  items: { title: string; help: string; types: string[]; optional?: boolean }[];
 }
 
-const ALL = ['PDF', 'JPEG', 'PNG', 'HEIC'];
-const PDF = ['PDF'];
-
-const NEW_TENANT: Template = {
-  name: 'New tenant',
-  usedBy: 'Letting agents',
-  items: [
-    {
-      title: 'Passport or driving licence',
-      help: 'A clear photo of the page with your photo on it.',
-      types: ALL,
-    },
-    {
-      title: 'Proof of address',
-      help: 'A utility bill or council tax letter from the last 3 months.',
-      types: ALL,
-    },
-    { title: 'Last 3 payslips', help: 'One file per month is fine.', types: PDF },
-    {
-      title: 'Bank statements',
-      help: 'The last 3 months, showing your name and address.',
-      types: PDF,
-    },
-    {
-      title: 'Employer reference',
-      help: 'A letter on company headed paper, if you have one.',
-      types: PDF,
-      optional: true,
-    },
-  ],
-};
-
-const TEMPLATES: Template[] = [
-  NEW_TENANT,
-  {
-    name: 'New employee (right to work)',
-    usedBy: 'Recruiters and care agencies',
-    items: [
-      {
-        title: 'Passport or biometric residence permit',
-        help: 'Every page with writing or a stamp on it.',
-        types: ALL,
-      },
-      {
-        title: 'Right to work share code',
-        help: 'A screenshot of the result from GOV.UK.',
-        types: ALL,
-      },
-      {
-        title: 'National Insurance letter',
-        help: 'Any letter from HMRC or DWP showing your number.',
-        types: ALL,
-      },
-      {
-        title: 'DBS certificate',
-        help: 'Only if you already have one.',
-        types: ALL,
-        optional: true,
-      },
-      {
-        title: 'Qualifications',
-        help: 'Certificates for the role you are joining.',
-        types: ALL,
-        optional: true,
-      },
-    ],
-  },
-  {
-    name: 'Self-assessment tax return',
-    usedBy: 'Accountants',
-    items: [
-      { title: 'P60 or P45', help: 'From every employer you had this tax year.', types: ALL },
-      { title: 'Bank interest statements', help: 'The annual summary from each bank.', types: PDF },
-      {
-        title: 'Pension contributions',
-        help: 'Statements for any private pension payments.',
-        types: PDF,
-      },
-      {
-        title: 'Rental income and costs',
-        help: 'Only if you let out a property.',
-        types: PDF,
-        optional: true,
-      },
-      {
-        title: 'Expense receipts',
-        help: 'Photos are fine. Group them into one file if you can.',
-        types: ALL,
-        optional: true,
-      },
-    ],
-  },
-  {
-    name: 'Immigration case',
-    usedBy: 'Solicitors',
-    items: [
-      { title: 'Passport, every page', help: 'Including blank pages, in order.', types: PDF },
-      { title: 'Current visa or BRP', help: 'Both sides of the card.', types: ALL },
-      { title: 'Proof of funds', help: 'Bank statements covering the last 6 months.', types: PDF },
-      {
-        title: 'English language certificate',
-        help: 'Your test result or degree certificate.',
-        types: ALL,
-      },
-      {
-        title: 'Proof of relationship',
-        help: 'Only for partner or family applications.',
-        types: ALL,
-        optional: true,
-      },
-    ],
-  },
-  {
-    name: 'Mortgage application',
-    usedBy: 'Brokers and solicitors',
-    items: [
-      { title: 'Photo ID', help: 'Passport or full driving licence.', types: ALL },
-      {
-        title: 'Last 3 payslips',
-        help: 'Or 2 years of accounts if you are self-employed.',
-        types: PDF,
-      },
-      { title: 'Bank statements', help: 'The last 3 months of your main account.', types: PDF },
-      {
-        title: 'Proof of deposit',
-        help: 'Where the deposit comes from, like savings or a gift letter.',
-        types: PDF,
-      },
-      { title: 'Latest P60', help: 'From your current employer.', types: ALL },
-    ],
-  },
-];
+/** The same built-in templates the app uses, so this section always matches the product. */
+const TEMPLATES: Template[] = BUILTIN_TEMPLATES.map((t) => ({
+  name: t.name,
+  usedBy: t.usedBy ?? '',
+  items: t.items.map((i) => ({
+    title: i.title,
+    help: i.helpText,
+    types: i.allowedTypes,
+    optional: !i.required,
+  })),
+}));
+const NEW_TENANT: Template = TEMPLATES[0] ?? { name: '', usedBy: '', items: [] };
 
 export function TemplateExplorer() {
   const [active, setActive] = useState(0);

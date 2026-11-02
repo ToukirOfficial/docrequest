@@ -13,14 +13,14 @@ Every table: UUIDv7 `id`, `createdAt`, `updatedAt` (UTC). Every tenant table has
 | `Membership` | userId, workspaceId, role `OWNER/ADMIN/STAFF` — unique (userId, workspaceId) |
 | `Invite` | workspaceId, email, role, tokenHash, expiresAt, acceptedAt |
 | `RefreshToken` | userId, familyId, tokenHash, expiresAt, revokedAt, replacedById (reuse of a used token revokes the whole family) |
-| `Template` | workspaceId (null = built-in), name |
+| `Template` | workspaceId, name (built-ins are in code, see `docs/decisions/003`) |
 | `TemplateItem` | templateId, position, title, helpText, required, allowedTypes `enum[]` (PDF/JPEG/PNG/HEIC) |
-| `Request` | workspaceId, createdById, clientName, clientEmail, dueDate?, message?, status `DRAFT/SENT/IN_PROGRESS/COMPLETE/EXPIRED`, linkHash (unique), linkExpiresAt, sentAt, completedAt, expiredAt, filesDeletedAt |
+| `Request` | workspaceId, createdById, checklistName, clientName, clientEmail, dueDate?, message?, status `DRAFT/SENT/IN_PROGRESS/COMPLETE/EXPIRED`, linkHash (unique), linkExpiresAt, sentAt, completedAt, expiredAt, filesDeletedAt |
 | `RequestItem` | requestId, workspaceId, position, title, helpText, required, allowedTypes, status `PENDING/SUBMITTED/ACCEPTED/REJECTED`, rejectReason |
 | `File` | requestItemId, workspaceId, storageKey (random), wrappedKey, iv, authTag, mimeType, size, originalExt, scanStatus `PENDING/CLEAN/INFECTED/SKIPPED`, deletedAt. Infected → stored bytes deleted, row kept with `INFECTED`, item back to `PENDING`, client sees "this file couldn't be accepted, please upload it again", audit entry. |
 | `Reminder` | requestId, kind (`DAY_2`, `DUE`, `MANUAL`…), sentAt — unique (requestId, kind) for auto kinds, so a reminder can never send twice |
 | `Export` | requestId, workspaceId, storageKey, wrappedKey, iv, authTag, status, expiresAt — zip encrypted with the same envelope encryption as uploads, deleted after 1 hour |
-| `AuditLog` | workspaceId, actorType `USER/CLIENT/SYSTEM`, actorId?, action, entityType, entityId, at — append-only (DB trigger blocks UPDATE/DELETE, added via a Prisma `--create-only` migration). Never file names or client details. |
+| `AuditLog` | workspaceId, actorType `USER/CLIENT/SYSTEM`, actorId?, action, entityType, entityId, requestId? (activity feed), at — append-only (DB trigger blocks UPDATE/DELETE, added via a Prisma `--create-only` migration). Never file names or client details. |
 
 **Overdue** is not stored: it is `dueDate < now` and status SENT/IN_PROGRESS, applied in the list query. Login codes, client codes and client sessions live in Redis (short TTL, hashed, max 5 attempts).
 
@@ -51,8 +51,8 @@ POST auth/password/forgot · auth/password/reset · GET auth/me
 GET  invites/:token  · POST invites/:token/accept                      (public)
 GET/PATCH w/:wid/settings                                               (Owner/Admin)
 GET  w/:wid/members · PATCH/DELETE w/:wid/members/:id · POST w/:wid/invites (Owner/Admin)
-GET/POST w/:wid/templates · GET/PATCH/DELETE w/:wid/templates/:id        (write: Owner/Admin)
-GET/POST w/:wid/requests · GET/PATCH/DELETE w/:wid/requests/:id
+GET/POST w/:wid/templates · GET/PUT/DELETE w/:wid/templates/:id          (write: Owner/Admin)
+GET w/:wid/dashboard · GET/POST w/:wid/requests · GET/PATCH/DELETE w/:wid/requests/:id
 PUT  w/:wid/requests/:id/items · POST w/:wid/requests/:id/send|remind|cancel
 POST w/:wid/requests/:id/items/:itemId/accept|reject
 GET  w/:wid/files/:fileId (stream, audited; Content-Disposition, nosniff, sandboxed CSP)
@@ -98,7 +98,7 @@ Tests: login + code + refresh/reuse, role rules, workspace isolation, rate limit
 
 **Phase 1c — Landing page.** ✅ Done (brought forward from Phase 6 at the owner's request). Brand accent changed to red-orange. Landing page at `/` per PRD §5, built to explain the product by showing it: an interactive 6-step product tour (staff view and client phone in sync), a "follow one file" security walkthrough (type check, ClamAV, EXIF removal, AES-256-GCM, storage, deletion), a template explorer for the 5 built-in checklists, an email vs hosted vs DocRequest comparison, an install terminal and an FAQ. Display font Schibsted Grotesk (OFL) for headings. The template items shown there are the source for the Phase 2 seed. Phase 6 still owns the real `docker-compose.yml` the self-host section points to, and the live demo the buttons link to.
 
-**Phase 2 — Templates and requests.** Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard to PRD §5: stat cards (open, waiting for review, overdue, completed this week), "Needs your attention" list, request rows with progress bars ("3 of 5 documents") and colour-coded status badges, recent activity feed (from the audit log, no client details), empty states and skeletons.
+**Phase 2 — Templates and requests.** ✅ Done. Built-in templates live in code (`docs/decisions/003`); workspace templates in the database. Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard to PRD §5: stat cards (open, waiting for review, overdue, completed this week), "Needs your attention" list, request rows with progress bars ("3 of 5 documents") and colour-coded status badges, recent activity feed (from the audit log, no client details), empty states and skeletons.
 Tests: isolation + roles on templates/requests, link stored only as hash.
 
 **Phase 3 — Client upload and secure storage.** Client link → code → session, storage adapter (local/S3), AES-256-GCM per-file key wrapped by master key (env or KMS), magic-byte type check, size limit, scan + convert jobs (scan switchable by `CLAMAV_ENABLED`), client upload UI to PRD §5: business name and logo, friendly intro, checklist with big upload buttons, progress bar, kind rejection reasons, "Your files are encrypted" note, "All done" screen.

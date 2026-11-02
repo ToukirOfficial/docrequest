@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Inbox, LogOut, Menu, Settings, Users, X } from 'lucide-react';
+import { ClipboardList, Inbox, LogOut, Menu, Settings, Users, X } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -98,6 +98,7 @@ function SidebarContent({
 
   const links = [
     { href: '/app', label: 'Requests', icon: Inbox, show: true },
+    { href: '/app/templates', label: 'Templates', icon: ClipboardList, show: true },
     { href: '/app/team', label: 'Team', icon: Users, show: canManage },
     { href: '/app/settings', label: 'Settings', icon: Settings, show: canManage },
   ].filter((l) => l.show);
@@ -144,7 +145,10 @@ function SidebarContent({
 
       <nav aria-label="Main" className="grid gap-0.5 px-3">
         {links.map((l) => {
-          const active = pathname === l.href;
+          const active =
+            l.href === '/app'
+              ? pathname === '/app' || pathname.startsWith('/app/requests')
+              : pathname.startsWith(l.href);
           return (
             <Link
               key={l.href}

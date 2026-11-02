@@ -14,7 +14,17 @@ export type AuditAction =
   | 'member.invite_revoked'
   | 'member.joined'
   | 'member.role_changed'
-  | 'member.removed';
+  | 'member.removed'
+  | 'template.created'
+  | 'template.updated'
+  | 'template.deleted'
+  | 'request.created'
+  | 'request.sent'
+  | 'request.link_resent'
+  | 'request.updated'
+  | 'request.items_updated'
+  | 'request.cancelled'
+  | 'request.deleted';
 
 export interface AuditEntry {
   workspaceId?: string | null;
@@ -23,6 +33,8 @@ export interface AuditEntry {
   action: AuditAction;
   entityType: string;
   entityId?: string | null;
+  /** Links the entry to a request for its activity feed. */
+  requestId?: string | null;
 }
 
 /**
