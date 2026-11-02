@@ -94,14 +94,14 @@ function ProductPanel() {
             ))}
           </ul>
 
-          <p className="mt-3 flex items-center gap-2 rounded-md bg-brand-soft px-3 py-2 text-xs font-medium text-brand-strong">
+          <p className="mt-3 flex items-center gap-2 rounded-md bg-success-soft px-3 py-2 text-xs font-medium text-success">
             <LockKeyhole className="size-3.5" />
             Encrypted with its own key and scanned for viruses
           </p>
         </div>
 
         <p className="mt-8 flex items-center gap-2 text-sm text-[#b9c3d6]">
-          <ShieldCheck className="size-4 text-[#3ddc97]" aria-hidden="true" />
+          <ShieldCheck className="size-4 text-brand-bright" aria-hidden="true" />
           Self-hosted: files stay on your own server.
         </p>
       </div>

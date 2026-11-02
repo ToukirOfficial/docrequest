@@ -38,6 +38,7 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-brand-bright: var(--brand-bright);
   --color-paper: var(--paper);
 
   /* Status (badges, progress, alerts) */
@@ -64,9 +65,10 @@
 :root {
   --ink: #0f1e3a;
   --ink-soft: #1b2d52;
-  --brand: #0b7a53;
-  --brand-strong: #086444;
-  --brand-soft: #e6f3ed;
+  --brand: #d63d14;
+  --brand-strong: #b83210;
+  --brand-soft: #fdede7;
+  --brand-bright: #ff7a50;
   --paper: #f5f7fa;
 
   --background: var(--paper);
@@ -83,7 +85,7 @@
   --muted-foreground: #5a6478;
   --accent: #edf0f5;
   --accent-foreground: var(--ink);
-  --destructive: #c0352b;
+  --destructive: #b4232f;
   --border: #e2e6ee;
   --input: #d5dbe5;
   --ring: var(--brand);
@@ -92,8 +94,8 @@
   --success-soft: #e6f3ed;
   --warning: #a15c07;
   --warning-soft: #fdf3e2;
-  --danger: #c0352b;
-  --danger-soft: #fcebe9;
+  --danger: #b4232f;
+  --danger-soft: #fbeaec;
   --info: #2457c5;
   --info-soft: #e9effc;
 }
@@ -101,9 +103,10 @@
 .dark {
   --ink: #e8edf6;
   --ink-soft: #c5cfe0;
-  --brand: #34b383;
-  --brand-strong: #4cc796;
-  --brand-soft: #123528;
+  --brand: #ff7a50;
+  --brand-strong: #ff9470;
+  --brand-soft: #3a1c12;
+  --brand-bright: #ff7a50;
   --paper: #0b1428;
 
   --background: var(--paper);
@@ -113,7 +116,7 @@
   --popover: #111c34;
   --popover-foreground: var(--ink);
   --primary: var(--brand);
-  --primary-foreground: #06140e;
+  --primary-foreground: #1a0904;
   --secondary: #1a2742;
   --secondary-foreground: var(--ink);
   --muted: #1a2742;

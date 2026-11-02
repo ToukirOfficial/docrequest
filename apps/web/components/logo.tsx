@@ -18,7 +18,7 @@ export function LogoMark({
       <path
         d="m11.5 19 3.5 3.5 6.5-7"
         fill="none"
-        stroke={inverse ? 'var(--brand)' : '#3ddc97'}
+        stroke={inverse ? 'var(--brand)' : 'var(--brand-bright)'}
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"

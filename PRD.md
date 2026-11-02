@@ -72,7 +72,7 @@ This is also a portfolio project: people judge it in 30 seconds, so it must look
 
 **Brand**
 - DocRequest wordmark logo (simple SVG).
-- Calm, trustworthy palette: deep navy for text and headers, one green accent for primary actions and "secure" moments, soft neutral backgrounds.
+- Palette: deep navy for text and headers, one red-orange accent for primary actions and highlights, soft neutral backgrounds. Green is kept only as the status colour for success and "secure" moments.
 - A clean, free, open-licence font. Light theme first; dark theme optional.
 
 **Landing page at `/`**
