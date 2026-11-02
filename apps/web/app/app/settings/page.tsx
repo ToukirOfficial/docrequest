@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import type { WorkspaceSettings } from '@docrequest/shared';
 import { useWorkspace } from '@/components/workspace-provider';
+import { PageHeader } from '@/components/page-header';
 import { Field } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
 
@@ -67,66 +67,97 @@ export default function SettingsPage() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2>Workspace</h2>
-          </CardTitle>
-          <CardDescription>These apply to every request in this workspace.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!settings || settings.id !== workspace.workspaceId ? (
-            error ? <FormError message={error} /> : <Skeleton className="h-64" />
-          ) : (
-            <form key={settings.id} onSubmit={onSubmit} className="grid max-w-md gap-4">
-              <FormError message={error} />
-              {saved && (
-                <Alert>
-                  <CheckCircle2 />
-                  <AlertDescription>Settings saved.</AlertDescription>
-                </Alert>
-              )}
-              <Field id="name" label="Business name" defaultValue={settings.name} required />
-              <Field
-                id="reminderDays"
-                label="Reminder schedule (days after sending)"
-                defaultValue={settings.reminderDays.join(', ')}
-                hint="Clients get a reminder for missing items on these days. Example: 2, 5, 7"
-              />
-              <Field
-                id="dueReminderDays"
-                label="Reminder before due date (days)"
-                type="number"
-                min={0}
-                max={30}
-                defaultValue={settings.dueReminderDays}
-                hint="0 turns it off."
-              />
-              <Field
-                id="linkExpiryDays"
-                label="Client link expiry (days)"
-                type="number"
-                min={1}
-                max={365}
-                defaultValue={settings.linkExpiryDays}
-              />
-              <Field
-                id="retentionDays"
-                label="Delete files after (days)"
-                type="number"
-                min={1}
-                max={365}
-                defaultValue={settings.retentionDays}
-                hint="Files are deleted this many days after a request is complete or expired."
-              />
-              <Button type="submit" className="w-fit" disabled={busy}>
-                {busy ? 'Saving…' : 'Save settings'}
-              </Button>
-            </form>
+      <PageHeader title="Settings" description="These apply to every request in this workspace." />
+      {!settings || settings.id !== workspace.workspaceId ? (
+        error ? (
+          <FormError message={error} />
+        ) : (
+          <div className="grid gap-4">
+            <Skeleton className="h-36 rounded-lg" />
+            <Skeleton className="h-52 rounded-lg" />
+          </div>
+        )
+      ) : (
+        <form key={settings.id} onSubmit={onSubmit} className="grid gap-6">
+          <FormError message={error} />
+          {saved && (
+            <Alert variant="success">
+              <CheckCircle2 />
+              <AlertDescription>Settings saved.</AlertDescription>
+            </Alert>
           )}
-        </CardContent>
-      </Card>
+          <Section title="Business" description="Clients see this name on every request and email.">
+            <Field id="name" label="Business name" defaultValue={settings.name} required />
+          </Section>
+          <Section
+            title="Reminders"
+            description="We remind clients about missing or rejected documents, so you don't have to."
+          >
+            <Field
+              id="reminderDays"
+              label="Remind clients on these days after sending"
+              defaultValue={settings.reminderDays.join(', ')}
+              hint="Separate days with commas, for example 2, 5, 7."
+            />
+            <Field
+              id="dueReminderDays"
+              label="Days before the due date to send a reminder"
+              type="number"
+              min={0}
+              max={30}
+              defaultValue={settings.dueReminderDays}
+              hint="Set to 0 to turn it off."
+            />
+          </Section>
+          <Section
+            title="Links and file deletion"
+            description="Keep client data only as long as you need it."
+          >
+            <Field
+              id="linkExpiryDays"
+              label="Client links work for (days)"
+              type="number"
+              min={1}
+              max={365}
+              defaultValue={settings.linkExpiryDays}
+            />
+            <Field
+              id="retentionDays"
+              label="Delete files after (days)"
+              type="number"
+              min={1}
+              max={365}
+              defaultValue={settings.retentionDays}
+              hint="Files are deleted this many days after a request is complete or expired."
+            />
+          </Section>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={busy}>
+              {busy ? 'Saving…' : 'Save settings'}
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid gap-5 rounded-lg border bg-card p-5 shadow-xs sm:p-6 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:gap-10">
+      <div>
+        <h2 className="font-semibold text-ink">{title}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+      <div className="grid max-w-md gap-5">{children}</div>
+    </section>
   );
 }

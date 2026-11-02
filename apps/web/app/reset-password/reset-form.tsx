@@ -23,7 +23,10 @@ export function ResetForm({ token }: { token: string }) {
     setBusy(true);
     setError(null);
     try {
-      await api('/auth/password/reset', { method: 'POST', body: { token, password: f.get('password') } });
+      await api('/auth/password/reset', {
+        method: 'POST',
+        body: { token, password: f.get('password') },
+      });
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -34,22 +37,49 @@ export function ResetForm({ token }: { token: string }) {
 
   if (done) {
     return (
-      <AuthCard title="Password changed" description="You've been signed out everywhere. Sign in with your new password.">
-        <Button asChild>
-          <Link href="/login">Sign in</Link>
+      <AuthCard
+        title="Password changed"
+        description="You've been signed out on every device. Sign in with your new password."
+      >
+        <Button asChild size="lg" className="w-full">
+          <Link href="/login">Go to sign in</Link>
         </Button>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard title="Choose a new password">
-      <form onSubmit={onSubmit} className="grid gap-4">
-        <FormError message={token ? error : 'This reset link is incomplete. Please request a new one.'} />
-        <Field id="password" label="New password" type="password" autoComplete="new-password" minLength={12} required hint="At least 12 characters." />
-        <Field id="confirm" label="Confirm new password" type="password" autoComplete="new-password" minLength={12} required />
-        <Button type="submit" disabled={busy || !token}>
-          {busy ? 'Saving…' : 'Save password'}
+    <AuthCard
+      title="Choose a new password"
+      description="Once it's changed, you'll be signed out on every device."
+    >
+      <form onSubmit={onSubmit} className="grid gap-5">
+        <FormError
+          message={
+            token
+              ? error
+              : 'This reset link is incomplete. Request a new one from the sign-in page.'
+          }
+        />
+        <Field
+          id="password"
+          label="New password"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          required
+          hint="At least 12 characters."
+        />
+        <Field
+          id="confirm"
+          label="Confirm new password"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          required
+        />
+        <Button type="submit" size="lg" className="w-full" disabled={busy || !token}>
+          {busy ? 'Changing…' : 'Change password'}
         </Button>
       </form>
     </AuthCard>

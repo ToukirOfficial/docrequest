@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthCard } from '@/components/auth-card';
-import { Field } from '@/components/field';
+import { Field, linkClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -32,22 +32,34 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" description="We'll email you a 6-digit code to finish signing in.">
-      <form onSubmit={onSubmit} className="grid gap-4">
+    <AuthCard
+      title="Sign in"
+      description="Enter your email and password. We'll then send a 6‑digit code to your inbox."
+    >
+      <form onSubmit={onSubmit} className="grid gap-5">
         <FormError message={error} />
         <Field id="email" label="Email" type="email" autoComplete="email" required />
-        <Field id="password" label="Password" type="password" autoComplete="current-password" required />
-        <Button type="submit" disabled={busy}>
+        <Field
+          id="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          required
+          aside={
+            <Link href="/forgot-password" className={`text-sm ${linkClass}`}>
+              Forgot password?
+            </Link>
+          }
+        />
+        <Button type="submit" size="lg" className="mt-1 w-full" disabled={busy}>
           {busy ? 'Checking…' : 'Continue'}
         </Button>
-        <div className="flex justify-between text-sm">
-          <Link href="/forgot-password" className="underline underline-offset-4">
-            Forgot password?
+        <p className="text-center text-sm text-muted-foreground">
+          New to DocRequest?{' '}
+          <Link href="/signup" className={linkClass}>
+            Create a workspace
           </Link>
-          <Link href="/signup" className="underline underline-offset-4">
-            Create an account
-          </Link>
-        </div>
+        </p>
       </form>
     </AuthCard>
   );

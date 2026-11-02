@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { AuthCard } from '@/components/auth-card';
-import { Field } from '@/components/field';
+import { Field, linkClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -32,8 +32,11 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <AuthCard title="Check your email" description="If an account exists for that address, we've sent a link to reset the password. It works for 1 hour.">
-        <Link href="/login" className="text-sm underline underline-offset-4">
+      <AuthCard
+        title="Check your email"
+        description="If there's an account for that address, a reset link is on its way. It works for 1 hour."
+      >
+        <Link href="/login" className={`text-sm ${linkClass}`}>
           Back to sign in
         </Link>
       </AuthCard>
@@ -41,14 +44,17 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthCard title="Reset your password" description="We'll email you a link to choose a new one.">
-      <form onSubmit={onSubmit} className="grid gap-4">
+    <AuthCard
+      title="Reset your password"
+      description="Enter your email and we'll send you a link to choose a new one."
+    >
+      <form onSubmit={onSubmit} className="grid gap-5">
         <FormError message={error} />
         <Field id="email" label="Email" type="email" autoComplete="email" required />
-        <Button type="submit" disabled={busy}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? 'Sending…' : 'Send reset link'}
         </Button>
-        <Link href="/login" className="text-center text-sm underline underline-offset-4">
+        <Link href="/login" className={`text-center text-sm ${linkClass}`}>
           Back to sign in
         </Link>
       </form>

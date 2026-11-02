@@ -95,7 +95,10 @@ export function WorkspaceProvider({
     return (
       <>
         {fallback({
-          error: me && !workspace ? 'You are not a member of any workspace yet. Ask for an invite.' : error,
+          error:
+            me && !workspace
+              ? 'You are not a member of any workspace yet. Ask for an invite.'
+              : error,
           retry: reload,
         })}
       </>

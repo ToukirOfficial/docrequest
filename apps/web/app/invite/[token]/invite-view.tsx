@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { InvitePreview } from '@docrequest/shared';
 import { AuthCard } from '@/components/auth-card';
-import { Field } from '@/components/field';
+import { Field, linkClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,21 +49,30 @@ export function InviteView({ token }: { token: string }) {
   if (loadError) {
     return (
       <AuthCard title="Invite not available" description={loadError}>
-        <Link href="/login" className="text-sm underline underline-offset-4">Go to sign in</Link>
+        <Link href="/login" className={`text-sm ${linkClass}`}>
+          Go to sign in
+        </Link>
       </AuthCard>
     );
   }
   if (!invite) {
     return (
-      <AuthCard title="Loading invite…">
-        <Skeleton className="h-24 w-full" />
+      <AuthCard title="Opening your invite">
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       </AuthCard>
     );
   }
   if (joined) {
     return (
-      <AuthCard title="You're in" description={`Your account is ready. Sign in to start using ${invite.workspaceName}.`}>
-        <Button asChild>
+      <AuthCard
+        title="You're in"
+        description={`Your account is ready. Sign in to start using ${invite.workspaceName}.`}
+      >
+        <Button asChild size="lg" className="w-full">
           <Link href="/login">Sign in</Link>
         </Button>
       </AuthCard>
@@ -74,23 +83,27 @@ export function InviteView({ token }: { token: string }) {
 
   if (invite.existingUser) {
     return (
-      <AuthCard title="Join workspace" description={description}>
-        <div className="grid gap-4">
+      <AuthCard title={`Join ${invite.workspaceName}`} description={description}>
+        <div className="grid gap-5">
           <FormError message={error} />
-          <p className="text-sm text-muted-foreground">You already have an account as {invite.email}.</p>
-          <Button onClick={() => void accept({})} disabled={busy}>
+          <p className="text-sm text-muted-foreground">
+            You already have an account as {invite.email}.
+          </p>
+          <Button size="lg" className="w-full" onClick={() => void accept({})} disabled={busy}>
             {busy ? 'Joining…' : 'Accept invite'}
           </Button>
-          <Link href="/login" className="text-center text-sm underline underline-offset-4">Sign in first</Link>
+          <Link href="/login" className={`text-center text-sm ${linkClass}`}>
+            Sign in first
+          </Link>
         </div>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard title="Join workspace" description={description}>
+    <AuthCard title={`Join ${invite.workspaceName}`} description={description}>
       <form
-        className="grid gap-4"
+        className="grid gap-5"
         onSubmit={(e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
@@ -100,8 +113,16 @@ export function InviteView({ token }: { token: string }) {
         <FormError message={error} />
         <Field id="email" label="Email" value={invite.email} readOnly disabled />
         <Field id="name" label="Your name" autoComplete="name" required />
-        <Field id="password" label="Choose a password" type="password" autoComplete="new-password" minLength={12} required hint="At least 12 characters." />
-        <Button type="submit" disabled={busy}>
+        <Field
+          id="password"
+          label="Choose a password"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          required
+          hint="At least 12 characters."
+        />
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? 'Creating account…' : 'Create account and join'}
         </Button>
       </form>
