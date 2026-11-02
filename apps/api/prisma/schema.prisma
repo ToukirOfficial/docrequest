@@ -43,6 +43,13 @@ enum ItemStatus {
   REJECTED
 }
 
+enum ExportStatus {
+  PENDING
+  READY
+  FAILED
+  EXPIRED
+}
+
 enum ScanStatus {
   PENDING
   CLEAN
@@ -196,6 +203,7 @@ model Request {
   createdBy     User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
   items         RequestItem[]
   files         File[]
+  exports       Export[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, createdAt])
@@ -250,4 +258,27 @@ model File {
   @@index([requestItemId])
   @@index([requestId])
   @@index([workspaceId])
+}
+
+/// A zip of a request's accepted files. Encrypted like uploads; deleted after 1 hour.
+model Export {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  requestId   String       @db.Uuid
+  workspaceId String       @db.Uuid
+  createdById String?      @db.Uuid
+  status      ExportStatus @default(PENDING)
+  storageKey  String?      @unique
+  wrappedKey  String?
+  iv          String?
+  authTag     String?
+  size        Int?
+  fileCount   Int?
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  request     Request      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([workspaceId])
+  @@index([status, expiresAt])
 }

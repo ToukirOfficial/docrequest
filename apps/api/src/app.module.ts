@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { RequestsModule } from './requests/requests.module.js';
 import { ClientModule } from './client/client.module.js';
+import { ReviewModule } from './review/review.module.js';
 import { HealthController } from './health.controller.js';
 
 @Module({
@@ -23,6 +24,7 @@ import { HealthController } from './health.controller.js';
     WorkspacesModule,
     RequestsModule,
     ClientModule,
+    ReviewModule,
   ],
   controllers: [HealthController],
   providers: [

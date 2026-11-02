@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { ClipboardList, Inbox, LogOut, Menu, Settings, Users, X } from 'lucide-react';
+import { ClipboardList, History, Inbox, LogOut, Menu, Settings, Users, X } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -100,6 +100,7 @@ function SidebarContent({
     { href: '/app', label: 'Requests', icon: Inbox, show: true },
     { href: '/app/templates', label: 'Templates', icon: ClipboardList, show: true },
     { href: '/app/team', label: 'Team', icon: Users, show: canManage },
+    { href: '/app/audit', label: 'Audit log', icon: History, show: canManage },
     { href: '/app/settings', label: 'Settings', icon: Settings, show: canManage },
   ].filter((l) => l.show);
 

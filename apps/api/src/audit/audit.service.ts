@@ -31,7 +31,13 @@ export type AuditAction =
   | 'file.uploaded'
   | 'file.removed'
   | 'file.infected'
-  | 'file.unreadable';
+  | 'file.unreadable'
+  | 'file.viewed'
+  | 'file.downloaded'
+  | 'item.accepted'
+  | 'item.rejected'
+  | 'export.created'
+  | 'export.downloaded';
 
 export interface AuditEntry {
   workspaceId?: string | null;

@@ -95,7 +95,12 @@ export class RequestsService {
         take: 6,
       }),
       this.prisma.auditLog.findMany({
-        where: { workspaceId: wid, requestId: { not: null } },
+        // Views and downloads go to the audit log page, not the feed.
+        where: {
+          workspaceId: wid,
+          requestId: { not: null },
+          action: { notIn: ['file.viewed', 'file.downloaded', 'export.downloaded'] },
+        },
         orderBy: { createdAt: 'desc' },
         take: 12,
       }),

@@ -15,6 +15,7 @@ import {
 } from '@/components/requests/items-editor';
 import { RequestProgress, RequestStatusBadge } from '@/components/requests/status';
 import { ReviewPanel } from '@/components/requests/review-panel';
+import { DownloadZip } from '@/components/requests/download-zip';
 import { useWorkspace } from '@/components/workspace-provider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -111,6 +112,7 @@ export default function RequestPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {r.acceptedCount > 0 && <DownloadZip requestId={r.id} onError={setError} />}
             {r.status === 'DRAFT' && (
               <>
                 <Button

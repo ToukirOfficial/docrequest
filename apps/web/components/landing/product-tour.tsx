@@ -431,17 +431,17 @@ function StaffPane({ id }: { id: StepId }) {
         <div className="grid h-full gap-4 sm:grid-cols-[150px_minmax(0,1fr)]">
           <ul className="hidden content-start gap-1 text-xs sm:grid">
             {[
-              ['Passport', 'success', 'Accepted'],
-              ['Proof of address', 'success', 'Accepted'],
+              ['Passport or driving licence', 'success', 'Accepted'],
+              ['Proof of address', 'warning', 'To review'],
               ['Last 3 payslips', 'success', 'Accepted'],
-              ['Bank statement', 'warning', 'To review'],
-              ['Employer reference', 'neutral', 'Missing'],
+              ['Bank statements', 'neutral', 'Missing'],
+              ['Employer reference', 'neutral', 'Optional'],
             ].map(([name, tone, label]) => (
               <li
                 key={name}
                 className={cn(
                   'rounded-md px-2.5 py-2',
-                  name === 'Bank statement'
+                  name === 'Proof of address'
                     ? 'bg-brand-soft font-semibold text-ink'
                     : 'text-muted-foreground',
                 )}
@@ -471,7 +471,7 @@ function StaffPane({ id }: { id: StepId }) {
                 ))}
               </div>
               <span className="absolute top-2 left-2 rounded bg-card/90 px-2 py-0.5 text-[10.5px] text-muted-foreground">
-                bank-statement.jpg, clean
+                Photo, 285 KB, scanned
               </span>
             </div>
             <div
@@ -558,10 +558,10 @@ function StaffPane({ id }: { id: StepId }) {
             </div>
             <ul className="grid gap-1.5 px-3 py-2.5 font-mono text-[11px] text-muted-foreground">
               {[
-                'okafor-amara_passport.pdf',
-                'okafor-amara_proof-of-address.pdf',
-                'okafor-amara_payslips.pdf',
-                'okafor-amara_bank-statement.jpg',
+                'okafor-amara_passport-or-driving-licence.pdf',
+                'okafor-amara_proof-of-address.jpg',
+                'okafor-amara_last-3-payslips.pdf',
+                'okafor-amara_bank-statements.pdf',
                 'okafor-amara_employer-reference.pdf',
               ].map((f, i) => (
                 <li
@@ -716,19 +716,9 @@ function ClientPane({ id }: { id: StepId }) {
             </div>
             <ul className="mt-3 grid gap-1.5">
               <ClientItem
-                title="Passport"
+                title="Passport or driving licence"
                 state={id === 'review' ? 'accepted' : 'uploaded'}
                 delay={0}
-              />
-              <ClientItem
-                title="Proof of address"
-                state={id === 'review' ? 'accepted' : 'uploaded'}
-                delay={250}
-              />
-              <ClientItem
-                title="Last 3 payslips"
-                state={id === 'review' ? 'accepted' : 'uploading'}
-                delay={500}
               />
               {id === 'review' ? (
                 <li
@@ -736,7 +726,7 @@ function ClientPane({ id }: { id: StepId }) {
                   style={appear(500)}
                 >
                   <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-ink">
-                    <RotateCcw className="size-3.5 text-danger" /> Bank statement
+                    <RotateCcw className="size-3.5 text-danger" /> Proof of address
                   </p>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
                     The photo is blurry. Could you take it again in good light?
@@ -746,8 +736,14 @@ function ClientPane({ id }: { id: StepId }) {
                   </span>
                 </li>
               ) : (
-                <ClientItem title="Bank statement" state="todo" delay={0} />
+                <ClientItem title="Proof of address" state="uploaded" delay={250} />
               )}
+              <ClientItem
+                title="Last 3 payslips"
+                state={id === 'review' ? 'accepted' : 'uploading'}
+                delay={500}
+              />
+              <ClientItem title="Bank statements" state="todo" delay={0} />
               <ClientItem title="Employer reference" state="todo" delay={0} />
             </ul>
             <p className="mt-3 flex items-start gap-1.5 text-[10.5px] leading-snug text-success">
@@ -774,10 +770,10 @@ function ClientPane({ id }: { id: StepId }) {
             <p className="mt-3 text-[13px] font-semibold text-ink">2 documents still needed</p>
             <ul className="mt-2 grid gap-1.5 text-[11.5px] text-ink">
               <li className="flex items-center gap-2">
-                <RotateCcw className="size-3.5 text-danger" /> Bank statement (please retake)
+                <RotateCcw className="size-3.5 text-danger" /> Proof of address (please retake)
               </li>
               <li className="flex items-center gap-2">
-                <Clock className="size-3.5 text-muted-foreground" /> Employer reference
+                <Clock className="size-3.5 text-muted-foreground" /> Bank statements
               </li>
             </ul>
             <span className="mt-3 flex h-9 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">

@@ -43,6 +43,22 @@ export const mailTemplates = {
     subject: `Your DocRequest sign-in code: ${code}`,
     text: `Your sign-in code is ${code}.\n\nIt expires in 10 minutes. If you did not try to sign in, you can ignore this email and consider changing your password.${footer}`,
   }),
+  retakeRequested: (
+    to: string,
+    p: {
+      clientName: string;
+      workspaceName: string;
+      itemTitle: string;
+      reason: string;
+      link: string;
+    },
+  ): MailMessage => ({
+    to,
+    subject: `${p.workspaceName} asked you to send "${p.itemTitle}" again`,
+    text:
+      `Hi ${p.clientName},\n\n${p.workspaceName} looked at "${p.itemTitle}" and asked you to send it again:\n\n"${p.reason}"\n\n` +
+      `You can upload a new one here:\n${p.link}\n\nThis link replaces any earlier ones we sent you.${footer}`,
+  }),
   clientCode: (to: string, workspaceName: string, code: string): MailMessage => ({
     to,
     subject: `Your code for ${workspaceName}: ${code}`,
