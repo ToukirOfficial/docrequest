@@ -10,3 +10,6 @@ coverage/
 .DS_Store
 storage/
 tmp/
+apps/api/src/generated/
+next-env.d.ts
+*.tsbuildinfo
