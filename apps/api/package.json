@@ -4,6 +4,11 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
+  "files": [
+    "dist",
+    "prisma",
+    "prisma.config.ts"
+  ],
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "dev": "prisma generate && tsc -p tsconfig.build.json && node --env-file-if-exists=../../.env --watch dist/main.js",

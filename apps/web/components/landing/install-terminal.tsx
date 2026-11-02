@@ -7,7 +7,7 @@ import { Check, Copy } from 'lucide-react';
 
 const COMMANDS = [
   'git clone https://github.com/toukirofficial/docrequest.git',
-  'cd docrequest && cp .env.example .env',
+  'cd docrequest && ./scripts/init-env.sh',
   'docker compose up -d',
 ];
 const SERVICES = ['postgres', 'redis', 'clamav', 'api', 'worker', 'web'];

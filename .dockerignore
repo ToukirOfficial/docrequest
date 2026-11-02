@@ -1,0 +1,15 @@
+# Never send secrets, uploads, mail or build output into an image.
+.env
+.env.*
+!.env.example
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/storage
+**/tmp
+**/*.tsbuildinfo
+.git
+.github
+infra
+docs
