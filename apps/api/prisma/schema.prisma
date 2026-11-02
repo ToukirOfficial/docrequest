@@ -1,0 +1,111 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum ActorType {
+  USER
+  CLIENT
+  SYSTEM
+}
+
+model User {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  email        String         @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  memberships  Membership[]
+  refreshTokens RefreshToken[]
+}
+
+model Workspace {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  name            String
+  reminderDays    Int[]        @default([2, 5, 7])
+  dueReminderDays Int          @default(1)
+  retentionDays   Int          @default(30)
+  linkExpiryDays  Int          @default(30)
+  isDemo          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  memberships     Membership[]
+  invites         Invite[]
+}
+
+model Membership {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @db.Uuid
+  workspaceId String    @db.Uuid
+  role        Role
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Invite {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @db.Uuid
+  email       String
+  role        Role
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  familyId     String    @db.Uuid
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+/// Append-only. A database trigger rejects UPDATE and DELETE.
+/// Never store client names, emails or file names here.
+model AuditLog {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String?   @db.Uuid
+  actorType   ActorType
+  actorId     String?   @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId, createdAt])
+  @@index([entityId])
+}
