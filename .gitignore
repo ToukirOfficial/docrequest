@@ -14,3 +14,11 @@ apps/api/src/generated/
 next-env.d.ts
 *.tsbuildinfo
 dump.rdb
+
+# Terraform
+infra/aws/.terraform/
+infra/aws/*.tfstate
+infra/aws/*.tfstate.*
+infra/aws/terraform.tfvars
+infra/aws/.terraform.lock.hcl
+infra/aws/rds-ca.pem

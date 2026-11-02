@@ -1,14 +1,16 @@
 # DocRequest: everything you need to self-host (PRD §3, item 22).
 #   ./scripts/init-env.sh      # once: writes .env with fresh secrets
 #   docker compose up -d       # then open http://localhost:8020
-# Virus scanning (ClamAV) needs about 1.5 GB of RAM. To run without it, remove
+# COMPOSE_PROFILES in .env picks the optional services: "localdb" (bundled Postgres)
+# and "clamav". Virus scanning (ClamAV) needs about 1.5 GB of RAM. To run without it, remove
 # "clamav" from COMPOSE_PROFILES in .env and set CLAMAV_ENABLED=false.
 
 x-app-env: &app-env
   NODE_ENV: 'production'
   WEB_ORIGIN: '${WEB_ORIGIN:-http://localhost:8020}'
   API_PORT: '8120'
-  DATABASE_URL: 'postgresql://docrequest:${POSTGRES_PASSWORD:?Run ./scripts/init-env.sh first}@postgres:5432/docrequest'
+  # Uses the bundled Postgres unless DATABASE_URL is set (e.g. AWS RDS, see infra/aws).
+  DATABASE_URL: '${DATABASE_URL:-postgresql://docrequest:${POSTGRES_PASSWORD:?Run ./scripts/init-env.sh first}@postgres:5432/docrequest}'
   REDIS_URL: 'redis://redis:6379/0'
   REDIS_PREFIX: 'docrequest:'
   JWT_SECRET: '${JWT_SECRET:?Run ./scripts/init-env.sh first}'
@@ -37,6 +39,7 @@ x-app-env: &app-env
 services:
   postgres:
     image: postgres:18-alpine
+    profiles: ['localdb']
     restart: unless-stopped
     environment:
       POSTGRES_USER: docrequest
@@ -73,7 +76,7 @@ services:
     build: { context: ., dockerfile: apps/api/Dockerfile, target: migrate }
     environment: *app-env
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres: { condition: service_healthy, required: false }
     restart: 'no'
 
   api:

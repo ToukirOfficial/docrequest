@@ -51,7 +51,7 @@ jobs:
       - name: Create .env (ClamAV off to keep CI fast)
         run: |
           ./scripts/init-env.sh
-          sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=/; s/^CLAMAV_ENABLED=.*/CLAMAV_ENABLED=false/' .env
+          sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=localdb/; s/^CLAMAV_ENABLED=.*/CLAMAV_ENABLED=false/' .env
       - run: docker compose config --quiet
       - run: docker compose up -d --build
       - name: Web and API answer through the proxy
@@ -68,3 +68,15 @@ jobs:
         run: docker compose logs --no-color
       - if: always()
         run: docker compose down -v
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/aws
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive -diff
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate

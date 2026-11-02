@@ -1,0 +1,39 @@
+# Added on top of docker-compose.yml on the AWS server: Caddy in front for automatic HTTPS.
+#   docker compose -f docker-compose.yml -f infra/aws/docker-compose.aws.yml up -d --build
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: '${DOMAIN:?Set DOMAIN in .env}'
+      ACME_EMAIL: '${ACME_EMAIL:?Set ACME_EMAIL in .env}'
+    volumes:
+      - ./infra/aws/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - web
+
+  # Only Caddy is public; the web app is reached through it.
+  web:
+    ports: !reset []
+
+  # The database connection verifies RDS's TLS certificate against Amazon's CA bundle.
+  migrate:
+    volumes:
+      - ./infra/aws/rds-ca.pem:/etc/ssl/rds-ca.pem:ro
+  api:
+    environment:
+      AWS_REGION: '${AWS_REGION:-}'
+    volumes:
+      - ./infra/aws/rds-ca.pem:/etc/ssl/rds-ca.pem:ro
+  worker:
+    environment:
+      AWS_REGION: '${AWS_REGION:-}'
+    volumes:
+      - ./infra/aws/rds-ca.pem:/etc/ssl/rds-ca.pem:ro
+
+volumes:
+  caddydata:

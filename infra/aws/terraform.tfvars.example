@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-ignored.
+region     = "eu-west-2"
+domain     = "docs.example.co.uk"
+acme_email = "you@example.co.uk"
+
+# Optional
+# instance_type  = "t4g.small"   # cheaper; set clamav_enabled = false with it
+# clamav_enabled = false
+# repo_ref       = "main"
+# smtp_url       = "smtps://USER:PASS@email-smtp.eu-west-2.amazonaws.com:465"
+# mail_from      = "Your Business <documents@example.co.uk>"

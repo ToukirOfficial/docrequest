@@ -1,0 +1,13 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	# Uploads up to MAX_UPLOAD_MB pass through (Caddy has no default body limit).
+	reverse_proxy web:8020
+}
