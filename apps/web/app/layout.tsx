@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
-import { Public_Sans } from 'next/font/google';
+import { Public_Sans, Schibsted_Grotesk } from 'next/font/google';
 import './globals.css';
 
+const display = Schibsted_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-schibsted',
+  display: 'swap',
+});
 const publicSans = Public_Sans({
   subsets: ['latin'],
   variable: '--font-public-sans',
@@ -16,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en-GB" className={`${publicSans.variable} h-full antialiased`}>
+    <html lang="en-GB" className={`${publicSans.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

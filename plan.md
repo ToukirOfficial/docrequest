@@ -85,7 +85,7 @@ Defined once as Tailwind theme tokens in `app/globals.css`; shadcn/ui components
 
 ## Pages (`apps/web`, shadcn/ui; `/api/*` proxied to the API so cookies stay first-party)
 
-Public: `/` landing page (hero with product preview, how it works, security, who it's for, self-hosting, open source, footer).
+Public: `/` landing page (hero with interactive product tour, comparison, file security walkthrough, template explorer, self-hosting, FAQ, footer).
 Staff: `/login`, `/login/code`, `/signup`, `/forgot-password`, `/reset-password`, `/invite/[token]`, `/app` (requests dashboard: status filter, search), `/app/requests/new`, `/app/requests/[id]` (items, previews, accept/reject, zip, remind), `/app/templates`, `/app/templates/[id]`, `/app/team`, `/app/settings`, `/app/audit`.
 Client (mobile-first, WCAG 2.2 AA): `/r/[token]` → code entry → checklist with camera/file upload per item, progress bar, rejection reasons. Demo: banner on all pages, `/demo/mail`.
 
@@ -96,7 +96,7 @@ Tests: login + code + refresh/reuse, role rules, workspace isolation, rate limit
 
 **Phase 1b — Design foundation.** ✅ Done. Theme tokens, Public Sans, logo + icon, themed shadcn/ui components. Restyled to the design system: split sign-in layout (login, code, signup, forgot/reset password, invite) with a product preview panel, app shell (sidebar on desktop, slide-in menu on phones), team, settings, requests empty state. Copy rewritten in plain UK English.
 
-**Phase 1c — Landing page.** ✅ Done (brought forward from Phase 6 at the owner's request). Brand accent changed to red-orange. Landing page at `/` per PRD §5. Phase 6 still owns the real `docker-compose.yml` the self-host section points to, and the live demo the buttons link to.
+**Phase 1c — Landing page.** ✅ Done (brought forward from Phase 6 at the owner's request). Brand accent changed to red-orange. Landing page at `/` per PRD §5, built to explain the product by showing it: an interactive 6-step product tour (staff view and client phone in sync), a "follow one file" security walkthrough (type check, ClamAV, EXIF removal, AES-256-GCM, storage, deletion), a template explorer for the 5 built-in checklists, an email vs hosted vs DocRequest comparison, an install terminal and an FAQ. Display font Schibsted Grotesk (OFL) for headings. The template items shown there are the source for the Phase 2 seed. Phase 6 still owns the real `docker-compose.yml` the self-host section points to, and the live demo the buttons link to.
 
 **Phase 2 — Templates and requests.** Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard to PRD §5: stat cards (open, waiting for review, overdue, completed this week), "Needs your attention" list, request rows with progress bars ("3 of 5 documents") and colour-coded status badges, recent activity feed (from the audit log, no client details), empty states and skeletons.
 Tests: isolation + roles on templates/requests, link stored only as hash.

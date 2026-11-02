@@ -11,6 +11,8 @@
   --font-sans:
     var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial,
     sans-serif;
+  --font-display:
+    var(--font-schibsted), var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --color-background: var(--background);
@@ -44,6 +46,7 @@
   /* Status (badges, progress, alerts) */
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-success-bright: var(--success-bright);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
@@ -92,6 +95,7 @@
 
   --success: #0b7a53;
   --success-soft: #e6f3ed;
+  --success-bright: #6fd8a6;
   --warning: #a15c07;
   --warning-soft: #fdf3e2;
   --danger: #b4232f;
@@ -130,6 +134,7 @@
 
   --success: #34b383;
   --success-soft: #123528;
+  --success-bright: #6fd8a6;
   --warning: #e8a547;
   --warning-soft: #3a2a10;
   --danger: #f07167;
@@ -153,5 +158,28 @@
   ::selection {
     background: var(--brand-soft);
     color: var(--ink);
+  }
+}
+
+/* Landing page product tour */
+@keyframes tour-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes tour-grow {
+  from {
+    width: var(--from, 0%);
+  }
+}
+@keyframes tour-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 64%;
   }
 }
