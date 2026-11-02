@@ -43,6 +43,11 @@ export const mailTemplates = {
     subject: `Your DocRequest sign-in code: ${code}`,
     text: `Your sign-in code is ${code}.\n\nIt expires in 10 minutes. If you did not try to sign in, you can ignore this email and consider changing your password.${footer}`,
   }),
+  clientCode: (to: string, workspaceName: string, code: string): MailMessage => ({
+    to,
+    subject: `Your code for ${workspaceName}: ${code}`,
+    text: `Your code is ${code}.\n\nEnter it on the upload page to see what ${workspaceName} needs from you. It works for 10 minutes.\n\nIf you didn't ask for this, you can ignore this email.${footer}`,
+  }),
   passwordReset: (to: string, link: string): MailMessage => ({
     to,
     subject: 'Reset your DocRequest password',

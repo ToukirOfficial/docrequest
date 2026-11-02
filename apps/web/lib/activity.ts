@@ -23,6 +23,7 @@ export function activityText(a: ActivityEntry): string {
     'file.uploaded': `${client} uploaded a document`,
     'file.removed': `${client} removed a document`,
     'file.infected': `A file from ${client} failed the virus scan`,
+    'file.unreadable': `A file from ${client} couldn't be opened`,
     'file.viewed': `${who} viewed a document from ${client}`,
     'item.accepted': `${who} accepted a document from ${client}`,
     'item.rejected': `${who} asked ${client} for a retake`,

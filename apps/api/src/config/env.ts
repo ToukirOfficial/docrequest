@@ -21,6 +21,23 @@ const schema = z.object({
   MAIL_DIR: z.string().default('./storage/mail'),
   MAIL_FROM: z.string().default('DocRequest <no-reply@localhost>'),
   SMTP_URL: z.string().optional(),
+
+  // Files (PRD §3, items 16, 17, 23). Every file is encrypted before it is stored, whatever the driver.
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  STORAGE_DIR: z.string().default('./storage/files'),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  /** For S3-compatible services (MinIO, R2, Wasabi). Leave empty for AWS. */
+  S3_ENDPOINT: z.string().optional(),
+  /** "env": master key from MASTER_KEY. "kms": AWS KMS key (KMS_KEY_ID). */
+  KEY_DRIVER: z.enum(['env', 'kms']).default('env'),
+  /** 32 random bytes, base64. Generate with: openssl rand -base64 32 */
+  MASTER_KEY: z.string().optional(),
+  KMS_KEY_ID: z.string().optional(),
+  MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(100).default(20),
+  CLAMAV_ENABLED: bool,
+  CLAMAV_HOST: z.string().default('127.0.0.1'),
+  CLAMAV_PORT: z.coerce.number().int().default(3310),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -31,7 +48,20 @@ function load(): Env {
     const problems = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
     throw new Error(`Invalid environment:\n${problems.join('\n')}`);
   }
-  return parsed.data;
+  const e = parsed.data;
+  if (e.KEY_DRIVER === 'env') {
+    const key = e.MASTER_KEY ? Buffer.from(e.MASTER_KEY, 'base64') : undefined;
+    if (!key || key.length !== 32) {
+      throw new Error(
+        'Invalid environment:\nMASTER_KEY must be 32 bytes, base64 (openssl rand -base64 32)',
+      );
+    }
+  }
+  if (e.KEY_DRIVER === 'kms' && !e.KMS_KEY_ID)
+    throw new Error('Invalid environment:\nKMS_KEY_ID is required when KEY_DRIVER=kms');
+  if (e.STORAGE_DRIVER === 's3' && !e.S3_BUCKET)
+    throw new Error('Invalid environment:\nS3_BUCKET is required when STORAGE_DRIVER=s3');
+  return e;
 }
 
 export const env = load();

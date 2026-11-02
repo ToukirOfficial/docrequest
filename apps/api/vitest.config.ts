@@ -27,6 +27,12 @@ export default defineConfig({
       DEMO_MODE: 'false',
       MAIL_DRIVER: 'file',
       MAIL_DIR: './tmp/test-mail',
+      STORAGE_DIR: './tmp/test-files',
+      KEY_DRIVER: 'env',
+      // Test-only key: 32 bytes of 0x07, base64.
+      MASTER_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
+      CLAMAV_ENABLED: 'false',
+      MAX_UPLOAD_MB: '2',
     },
   },
 });

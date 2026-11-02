@@ -13,6 +13,7 @@ import type {
   RequestDetail,
   RequestList,
   RequestSummary,
+  StaffFile,
   UpdateRequestInput,
   createRequestSchema,
   listRequestsQuerySchema,
@@ -109,7 +110,13 @@ export class RequestsService {
   async get(member: WorkspaceMember, requestId: string): Promise<RequestDetail> {
     const r = await this.prisma.request.findFirst({
       where: { id: requestId, workspaceId: member.workspaceId },
-      include: { items: { orderBy: { position: 'asc' } }, createdBy: { select: { name: true } } },
+      include: {
+        items: {
+          orderBy: { position: 'asc' },
+          include: { files: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } } },
+        },
+        createdBy: { select: { name: true } },
+      },
     });
     if (!r) throw new NotFoundException('Request not found');
     return {
@@ -129,6 +136,7 @@ export class RequestsService {
         allowedTypes: i.allowedTypes,
         status: i.status,
         rejectReason: i.rejectReason,
+        files: i.files.map(toStaffFile),
       })),
     };
   }
@@ -407,6 +415,24 @@ function filterWhere(
 }
 
 const RECEIVED: ItemStatus[] = ['SUBMITTED', 'ACCEPTED'];
+
+export function toStaffFile(f: {
+  id: string;
+  mimeType: string;
+  size: number;
+  scanStatus: StaffFile['scanStatus'];
+  processedAt: Date | null;
+  createdAt: Date;
+}): StaffFile {
+  return {
+    id: f.id,
+    mimeType: f.mimeType,
+    size: f.size,
+    scanStatus: f.scanStatus,
+    ready: (f.scanStatus === 'CLEAN' || f.scanStatus === 'SKIPPED') && f.processedAt !== null,
+    uploadedAt: f.createdAt.toISOString(),
+  };
+}
 
 export function toSummary(r: SummaryRow): RequestSummary {
   return {

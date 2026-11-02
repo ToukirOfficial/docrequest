@@ -85,7 +85,7 @@ const STAGES: Stage[] = [
     title: 'Saved where nobody can link to it',
     body: 'Files sit under a random name on your own disk or S3-compatible storage, outside any public folder. Every view goes through a permission check and is written to the audit log.',
     rows: [
-      { k: 'Stored as', v: 'files/7c/1e9a0fd3b2c84e.bin', state: 'new' },
+      { k: 'Stored as', v: 'files/7c/7c1e9a0fd3b2c84e5a9107f2d6b3e8a1.bin', state: 'new' },
       { k: 'Public URL', v: 'None', state: 'ok' },
       { k: 'Audit log', v: 'Priya Shah viewed it, 2 Nov 10:02' },
     ],

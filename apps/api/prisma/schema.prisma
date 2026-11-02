@@ -43,6 +43,13 @@ enum ItemStatus {
   REJECTED
 }
 
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  SKIPPED
+}
+
 model User {
   id           String         @id @default(uuid(7)) @db.Uuid
   email        String         @unique
@@ -188,6 +195,7 @@ model Request {
   workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy     User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
   items         RequestItem[]
+  files         File[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, createdAt])
@@ -209,7 +217,37 @@ model RequestItem {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   request      Request    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  files        File[]
 
   @@index([requestId])
   @@index([workspaceId, status])
+}
+
+/// An uploaded document. Bytes are stored encrypted (AES-256-GCM, own key per file)
+/// under a random storage key; the file key is stored wrapped by the master key.
+/// No original file name is kept.
+model File {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  requestItemId String      @db.Uuid
+  requestId     String      @db.Uuid
+  workspaceId   String      @db.Uuid
+  storageKey    String      @unique
+  wrappedKey    String
+  iv            String
+  authTag       String
+  mimeType      String
+  size          Int
+  originalExt   String
+  scanStatus    ScanStatus  @default(PENDING)
+  /// Set when conversion (HEIC to JPEG, resize, metadata removal) has finished.
+  processedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  item          RequestItem @relation(fields: [requestItemId], references: [id], onDelete: Cascade)
+  request       Request     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestItemId])
+  @@index([requestId])
+  @@index([workspaceId])
 }

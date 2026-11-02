@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { emailSchema, nameSchema, uuidSchema } from './common.js';
 import { itemInputSchema, type FileType } from './templates.js';
+import type { StaffFile } from './client.js';
 
 export const REQUEST_STATUSES = ['DRAFT', 'SENT', 'IN_PROGRESS', 'COMPLETE', 'EXPIRED'] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
@@ -92,6 +93,7 @@ export interface RequestItem {
   allowedTypes: FileType[];
   status: ItemStatus;
   rejectReason: string | null;
+  files: StaffFile[];
 }
 
 export interface RequestDetail extends RequestSummary {

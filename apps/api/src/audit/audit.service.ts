@@ -24,7 +24,14 @@ export type AuditAction =
   | 'request.updated'
   | 'request.items_updated'
   | 'request.cancelled'
-  | 'request.deleted';
+  | 'request.deleted'
+  | 'request.completed'
+  | 'client.opened'
+  | 'client.verified'
+  | 'file.uploaded'
+  | 'file.removed'
+  | 'file.infected'
+  | 'file.unreadable';
 
 export interface AuditEntry {
   workspaceId?: string | null;
