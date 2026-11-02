@@ -9,6 +9,8 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   WEB_ORIGIN: z.url().default('http://localhost:8020'),
   API_PORT: z.coerce.number().int().default(8120),
+  /** 0.0.0.0 for Docker (reached from other containers); 127.0.0.1 behind a host reverse proxy. */
+  API_HOST: z.string().default('0.0.0.0'),
   TRUST_PROXY: z.string().default('loopback, linklocal, uniquelocal'),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379/6'),
