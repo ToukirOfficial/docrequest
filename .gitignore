@@ -22,3 +22,6 @@ infra/aws/*.tfstate.*
 infra/aws/terraform.tfvars
 infra/aws/.terraform.lock.hcl
 infra/aws/rds-ca.pem
+
+# Server details for deploy.sh (public repo: never commit)
+deploy.env

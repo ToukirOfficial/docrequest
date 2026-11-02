@@ -1,10 +1,25 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["API_URL", "MAX_UPLOAD_MB"],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
-    "typecheck": { "dependsOn": ["^build"] },
-    "lint": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"], "cache": false },
-    "dev": { "dependsOn": ["^build"], "cache": false, "persistent": true }
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    }
   }
 }
