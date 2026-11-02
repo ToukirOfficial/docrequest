@@ -1,0 +1,305 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+enum ActorType {
+  USER
+  CLIENT
+  SYSTEM
+}
+
+enum FileType {
+  PDF
+  JPEG
+  PNG
+  HEIC
+}
+
+enum RequestStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  COMPLETE
+  EXPIRED
+}
+
+enum ItemStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+enum ExportStatus {
+  PENDING
+  READY
+  FAILED
+  EXPIRED
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  SKIPPED
+}
+
+model User {
+  id           String         @id @default(uuid(7)) @db.Uuid
+  email        String         @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  memberships  Membership[]
+  refreshTokens RefreshToken[]
+  requests     Request[]
+}
+
+model Workspace {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  name            String
+  reminderDays    Int[]        @default([2, 5, 7])
+  dueReminderDays Int          @default(1)
+  retentionDays   Int          @default(30)
+  linkExpiryDays  Int          @default(30)
+  isDemo          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  memberships     Membership[]
+  invites         Invite[]
+  templates       Template[]
+  requests        Request[]
+}
+
+model Membership {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @db.Uuid
+  workspaceId String    @db.Uuid
+  role        Role
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Invite {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @db.Uuid
+  email       String
+  role        Role
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String    @db.Uuid
+  familyId     String    @db.Uuid
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+/// Append-only. A database trigger rejects UPDATE and DELETE.
+/// Never store client names, emails or file names here.
+model AuditLog {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String?   @db.Uuid
+  actorType   ActorType
+  actorId     String?   @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?   @db.Uuid
+  /// Set for anything that happens to a request, its items or files (activity feed).
+  requestId   String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId, createdAt])
+  @@index([entityId])
+  @@index([requestId])
+}
+
+/// A workspace's own checklist. Built-in templates live in code (packages/shared).
+model Template {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  workspaceId String         @db.Uuid
+  name        String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items       TemplateItem[]
+
+  @@index([workspaceId])
+}
+
+model TemplateItem {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  templateId   String     @db.Uuid
+  position     Int
+  title        String
+  helpText     String     @default("")
+  required     Boolean    @default(true)
+  allowedTypes FileType[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  template     Template   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model Request {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  workspaceId   String        @db.Uuid
+  createdById   String?       @db.Uuid
+  checklistName String        @default("")
+  clientName    String
+  clientEmail   String
+  dueDate       DateTime?     @db.Date
+  message       String        @default("")
+  status        RequestStatus @default(DRAFT)
+  /// SHA-256 of the client link token. The token itself is never stored.
+  linkHash      String?       @unique
+  linkExpiresAt DateTime?
+  sentAt        DateTime?
+  completedAt   DateTime?
+  expiredAt     DateTime?
+  filesDeletedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items         RequestItem[]
+  files         File[]
+  exports       Export[]
+  reminders     Reminder[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, dueDate])
+  @@index([createdById])
+}
+
+model RequestItem {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  requestId    String     @db.Uuid
+  workspaceId  String     @db.Uuid
+  position     Int
+  title        String
+  helpText     String     @default("")
+  required     Boolean    @default(true)
+  allowedTypes FileType[]
+  status       ItemStatus @default(PENDING)
+  rejectReason String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  request      Request    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  files        File[]
+
+  @@index([requestId])
+  @@index([workspaceId, status])
+}
+
+/// An uploaded document. Bytes are stored encrypted (AES-256-GCM, own key per file)
+/// under a random storage key; the file key is stored wrapped by the master key.
+/// No original file name is kept.
+model File {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  requestItemId String      @db.Uuid
+  requestId     String      @db.Uuid
+  workspaceId   String      @db.Uuid
+  storageKey    String      @unique
+  wrappedKey    String
+  iv            String
+  authTag       String
+  mimeType      String
+  size          Int
+  originalExt   String
+  scanStatus    ScanStatus  @default(PENDING)
+  /// Set when conversion (HEIC to JPEG, resize, metadata removal) has finished.
+  processedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  item          RequestItem @relation(fields: [requestItemId], references: [id], onDelete: Cascade)
+  request       Request     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestItemId])
+  @@index([requestId])
+  @@index([workspaceId])
+}
+
+/// A zip of a request's accepted files. Encrypted like uploads; deleted after 1 hour.
+model Export {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  requestId   String       @db.Uuid
+  workspaceId String       @db.Uuid
+  createdById String?      @db.Uuid
+  status      ExportStatus @default(PENDING)
+  storageKey  String?      @unique
+  wrappedKey  String?
+  iv          String?
+  authTag     String?
+  size        Int?
+  fileCount   Int?
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  request     Request      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([workspaceId])
+  @@index([status, expiresAt])
+}
+
+/// One row per reminder sent. Automatic kinds ("DAY_2", "DUE") are unique per request,
+/// so a reminder can never be sent twice, even if two sweeps run at once.
+/// Manual reminders use "MANUAL:<time>".
+model Reminder {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  requestId   String   @db.Uuid
+  workspaceId String   @db.Uuid
+  kind        String
+  /// False when a late sweep skipped an older reminder in favour of the newest one.
+  emailed     Boolean  @default(true)
+  sentById    String?  @db.Uuid
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, kind])
+  @@index([workspaceId])
+}

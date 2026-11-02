@@ -1,0 +1,51 @@
+#!/bin/bash
+# First boot of the DocRequest server (Amazon Linux 2023, arm64). Logs: /var/log/docrequest-setup.log
+set -euo pipefail
+exec > /var/log/docrequest-setup.log 2>&1
+
+dnf install -y docker git jq python3
+systemctl enable --now docker
+
+# Docker Compose and Buildx plugins (not in the AL2023 repos).
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-aarch64
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.17.1/buildx-v0.17.1.linux-arm64
+chmod +x /usr/local/lib/docker/cli-plugins/*
+
+git clone --depth 1 --branch "${repo_ref}" "${repo_url}" /opt/docrequest
+cd /opt/docrequest
+
+# Amazon's RDS certificate authorities, so the app verifies the database's TLS certificate.
+curl -fsSL -o infra/aws/rds-ca.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+
+# The database password comes from Secrets Manager (RDS manages and rotates it).
+SECRET=$(aws secretsmanager get-secret-value --region "${region}" --secret-id "${db_secret_arn}" --query SecretString --output text)
+DB_USER=$(echo "$SECRET" | jq -r .username)
+DB_PASS=$(echo "$SECRET" | jq -r .password | python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))')
+
+umask 077
+cat > .env <<ENV
+WEB_ORIGIN=https://${domain}
+DOMAIN=${domain}
+ACME_EMAIL=${acme_email}
+DATABASE_URL=postgresql://$DB_USER:$DB_PASS@${db_host}:5432/docrequest?sslmode=verify-full&sslrootcert=/etc/ssl/rds-ca.pem
+# Required by docker-compose.yml's syntax; the bundled Postgres isn't started on AWS.
+POSTGRES_PASSWORD=unused
+JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+CODE_PEPPER=$(openssl rand -base64 32 | tr -d '\n')
+STORAGE_DRIVER=s3
+S3_BUCKET=${bucket}
+S3_REGION=${region}
+KEY_DRIVER=kms
+KMS_KEY_ID=${kms_key_arn}
+AWS_REGION=${region}
+COMPOSE_PROFILES=${clamav_enabled ? "clamav" : ""}
+CLAMAV_ENABLED=${clamav_enabled}
+MAIL_DRIVER=${smtp_url == "" ? "file" : "smtp"}
+SMTP_URL=${smtp_url}
+MAIL_FROM=${mail_from}
+SIGNUP_ENABLED=true
+ENV
+
+docker compose -f docker-compose.yml -f infra/aws/docker-compose.aws.yml up -d --build
+echo "DocRequest is starting on https://${domain}"

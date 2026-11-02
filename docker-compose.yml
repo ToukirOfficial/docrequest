@@ -1,0 +1,122 @@
+# DocRequest: everything you need to self-host (PRD §3, item 22).
+#   ./scripts/init-env.sh      # once: writes .env with fresh secrets
+#   docker compose up -d       # then open http://localhost:8020
+# COMPOSE_PROFILES in .env picks the optional services: "localdb" (bundled Postgres)
+# and "clamav". Virus scanning (ClamAV) needs about 1.5 GB of RAM. To run without it, remove
+# "clamav" from COMPOSE_PROFILES in .env and set CLAMAV_ENABLED=false.
+
+x-app-env: &app-env
+  NODE_ENV: 'production'
+  WEB_ORIGIN: '${WEB_ORIGIN:-http://localhost:8020}'
+  API_PORT: '8120'
+  # Uses the bundled Postgres unless DATABASE_URL is set (e.g. AWS RDS, see infra/aws).
+  DATABASE_URL: '${DATABASE_URL:-postgresql://docrequest:${POSTGRES_PASSWORD:?Run ./scripts/init-env.sh first}@postgres:5432/docrequest}'
+  REDIS_URL: 'redis://redis:6379/0'
+  REDIS_PREFIX: 'docrequest:'
+  JWT_SECRET: '${JWT_SECRET:?Run ./scripts/init-env.sh first}'
+  CODE_PEPPER: '${CODE_PEPPER:?Run ./scripts/init-env.sh first}'
+  KEY_DRIVER: '${KEY_DRIVER:-env}'
+  MASTER_KEY: '${MASTER_KEY:-}'
+  KMS_KEY_ID: '${KMS_KEY_ID:-}'
+  STORAGE_DRIVER: '${STORAGE_DRIVER:-local}'
+  STORAGE_DIR: '/app/storage/files'
+  S3_BUCKET: ${S3_BUCKET:-}
+  S3_REGION: ${S3_REGION:-}
+  S3_ENDPOINT: ${S3_ENDPOINT:-}
+  MAX_UPLOAD_MB: '${MAX_UPLOAD_MB:-20}'
+  CLAMAV_ENABLED: '${CLAMAV_ENABLED:-true}'
+  CLAMAV_HOST: 'clamav'
+  CLAMAV_PORT: '3310'
+  MAIL_DRIVER: '${MAIL_DRIVER:-file}'
+  MAIL_DIR: '/app/storage/mail'
+  MAIL_FROM: '${MAIL_FROM:-DocRequest <no-reply@localhost>}'
+  SMTP_URL: '${SMTP_URL:-}'
+  SIGNUP_ENABLED: '${SIGNUP_ENABLED:-true}'
+  DEMO_MODE: '${DEMO_MODE:-false}'
+  # Requests reach the API only through the web container's proxy.
+  TRUST_PROXY: '${TRUST_PROXY:-loopback, linklocal, uniquelocal}'
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    profiles: ['localdb']
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: docrequest
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?Run ./scripts/init-env.sh first}'
+      POSTGRES_DB: docrequest
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U docrequest']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  clamav:
+    image: clamav/clamav:stable
+    profiles: ['clamav']
+    restart: unless-stopped
+    volumes:
+      - clamavdb:/var/lib/clamav
+
+  migrate:
+    build: { context: ., dockerfile: apps/api/Dockerfile, target: migrate }
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy, required: false }
+    restart: 'no'
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    image: docrequest-api
+    restart: unless-stopped
+    environment: *app-env
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    image: docrequest-api
+    command: ['node', 'dist/worker.js']
+    restart: unless-stopped
+    environment: *app-env
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      api: { condition: service_started }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_URL: http://api:8120
+        MAX_UPLOAD_MB: '${MAX_UPLOAD_MB:-20}'
+    restart: unless-stopped
+    ports:
+      - '${WEB_PORT:-8020}:8020'
+    depends_on:
+      api: { condition: service_started }
+
+volumes:
+  pgdata:
+  redisdata:
+  clamavdb:
+  storage:
