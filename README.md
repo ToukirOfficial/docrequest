@@ -1,10 +1,28 @@
 # DocRequest
 
+[![CI](https://github.com/ToukirOfficial/docrequest/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ToukirOfficial/docrequest/actions/workflows/ci.yml)
+[![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
+
 **Stop chasing clients for documents.** DocRequest is a free, open-source client portal you run on your own server. You send a client one secure link with a checklist, they upload from their phone, and you review, accept and download. Every file is scanned, encrypted and deleted on schedule.
 
 ![A request from start to finish: send, upload from a phone, review, done](docs/media/demo.gif)
 
 **[Try the live demo](https://docrequest.toukirahmedrony.com/login)** · Licence: AGPL-3.0
+
+## Contents
+
+- [What it does](#what-it-does)
+- [Why it exists](#why-it-exists)
+- [Try it](#try-it)
+- [Run it locally (for development)](#run-it-locally-for-development)
+- [Self-host with Docker](#self-host-with-docker)
+- [Deploy to AWS](#deploy-to-aws)
+- [How security works](#how-security-works)
+- [Hard problems and how they were solved](#hard-problems-and-how-they-were-solved)
+- [Decisions](#decisions)
+- [Tests](#tests)
+- [Project layout](#project-layout)
+- [Licence](#licence)
 
 ---
 
@@ -166,7 +184,7 @@ Short notes in [`docs/decisions/`](docs/decisions): auth cookies and origin chec
 pnpm test        # needs the docrequest_test database and Redis (db 6)
 ```
 
-The tests run against a **real PostgreSQL and Redis**, with no mocks. They cover:
+There are **79 tests in 9 files**, all in the API, and they all pass. They run against a **real PostgreSQL and Redis**, with no mocks. They cover:
 
 - **Staff sign-in:** login with the emailed code, refresh rotation and reuse detection, rate limits.
 - **Roles and isolation:** every role rule, and workspace isolation for settings, team, templates, requests, files, exports and the audit log.
