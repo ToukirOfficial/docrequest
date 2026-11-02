@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { uuidSchema } from './common.js';
 
-export const itemParamsSchema = z.object({ workspaceId: uuidSchema, requestId: uuidSchema, itemId: uuidSchema });
+export const itemParamsSchema = z.object({
+  workspaceId: uuidSchema,
+  requestId: uuidSchema,
+  itemId: uuidSchema,
+});
 export const fileParamsSchema = z.object({ workspaceId: uuidSchema, fileId: uuidSchema });
 export const fileQuerySchema = z.object({ download: z.enum(['1']).optional() });
 export const exportParamsSchema = z.object({ workspaceId: uuidSchema, exportId: uuidSchema });
@@ -28,7 +32,9 @@ export interface ExportInfo {
   fileName: string;
 }
 
-export const auditQuerySchema = z.object({ page: z.coerce.number().int().min(1).max(10000).default(1) });
+export const auditQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10000).default(1),
+});
 
 export interface AuditEntry {
   id: string;
@@ -72,6 +78,12 @@ function slugParts(text: string): string[] {
 }
 
 /** Clean download name, e.g. "smith-jane_passport.pdf", or "smith-jane_payslips-2.pdf" for the second file. */
-export function cleanFileName(clientName: string, itemTitle: string, ext: string, index = 1, of = 1): string {
+export function cleanFileName(
+  clientName: string,
+  itemTitle: string,
+  ext: string,
+  index = 1,
+  of = 1,
+): string {
   return `${clientSlug(clientName)}_${slug(itemTitle)}${of > 1 ? `-${index}` : ''}.${ext}`;
 }

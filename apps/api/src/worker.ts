@@ -6,11 +6,14 @@ import {
   MAIL_QUEUE,
   QUEUE_PREFIX,
   SCAN_QUEUE,
+  SWEEP_QUEUE,
   bullConnection,
   type ExportJob,
   type FileJob,
 } from './queue/queues.js';
 import { EXPORT_TTL_MS, buildExport, expireExport } from './files/export.js';
+import { reminderSweep } from './sweeps/reminders.js';
+import { expirySweep, retentionSweep } from './sweeps/retention.js';
 import { createMailSender } from './mail/mail.sender.js';
 import type { MailMessage } from './mail/templates.js';
 import { PrismaService } from './common/prisma.service.js';
@@ -27,6 +30,17 @@ const exportQueue = new Queue<ExportJob>(EXPORT_QUEUE, {
   connection: bullConnection(),
   prefix: QUEUE_PREFIX,
 });
+const mailQueue = new Queue<MailMessage>(MAIL_QUEUE, {
+  connection: bullConnection(),
+  prefix: QUEUE_PREFIX,
+  defaultJobOptions: {
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 10_000 },
+    removeOnComplete: true,
+    removeOnFail: 100,
+  },
+});
+const sweepQueue = new Queue(SWEEP_QUEUE, { connection: bullConnection(), prefix: QUEUE_PREFIX });
 const opts = { connection: bullConnection(), prefix: QUEUE_PREFIX };
 
 // One at a time: decoding big photos uses a lot of memory on a small server.
@@ -43,6 +57,21 @@ convertWorker.on('failed', (job) => {
   if (job && job.attemptsMade >= (job.opts.attempts ?? 1))
     void rejectUnreadable({ prisma }, job.data.fileId);
 });
+
+const exportWorker = new Worker<ExportJob>(
+  EXPORT_QUEUE,
+  async (job) => {
+    if (job.data.expire) return expireExport(prisma, job.data.exportId);
+    await buildExport(prisma, job.data.exportId);
+    // Delete the zip again after an hour.
+    await exportQueue.add(
+      'expire',
+      { exportId: job.data.exportId, expire: true },
+      { delay: EXPORT_TTL_MS, removeOnComplete: true },
+    );
+  },
+  { ...opts, concurrency: 1 },
+);
 
 const workers: Worker[] = [
   new Worker<MailMessage>(
@@ -67,34 +96,57 @@ const workers: Worker[] = [
     { ...opts, concurrency: 2 },
   ),
   convertWorker,
-  new Worker<ExportJob>(
-    EXPORT_QUEUE,
-    async (job) => {
-      if (job.data.expire) return expireExport(prisma, job.data.exportId);
-      await buildExport(prisma, job.data.exportId);
-      // Delete the zip again after an hour.
-      await exportQueue.add(
-        'expire',
-        { exportId: job.data.exportId, expire: true },
-        { delay: EXPORT_TTL_MS, removeOnComplete: true },
-      );
-    },
-    { ...opts, concurrency: 1 },
-  ),
+  exportWorker,
 ];
 
 for (const w of workers) {
   // Log job ids only: never email addresses, names or file contents.
   w.on('failed', (job, err) =>
-    logger.warn(`${w.name} job ${job?.id ?? '?'} failed: ${err.message}`),
+    logger.warn(
+      `${w.name} job ${job?.id ?? '?'} failed: ${err.message.replace(/[^\s<>"']+@[^\s<>"']+/g, '[email]')}`,
+    ),
   );
 }
+const sweeps = new Worker(
+  SWEEP_QUEUE,
+  async (job) => {
+    const deps = {
+      prisma,
+      sendMail: async (m: MailMessage) => void (await mailQueue.add('send', m)),
+    };
+    if (job.name === 'reminders') return { sent: await reminderSweep(deps) };
+    if (job.name === 'expiry') return { expired: await expirySweep(deps) };
+    if (job.name === 'retention') return { deleted: await retentionSweep(deps) };
+  },
+  { ...opts, concurrency: 1 },
+);
+workers.push(sweeps);
+
+// Schedules are upserted on every start, so changing them here is all it takes.
+await sweepQueue.upsertJobScheduler(
+  'reminders',
+  { pattern: '5 * * * *', tz: 'Europe/London' },
+  { name: 'reminders' },
+);
+await sweepQueue.upsertJobScheduler(
+  'expiry',
+  { pattern: '35 * * * *', tz: 'Europe/London' },
+  { name: 'expiry' },
+);
+await sweepQueue.upsertJobScheduler(
+  'retention',
+  { pattern: '15 3 * * *', tz: 'Europe/London' },
+  { name: 'retention' },
+);
+
 logger.log('Worker started');
 
 async function shutdown(): Promise<void> {
   await Promise.all(workers.map((w) => w.close()));
   await convertQueue.close();
   await exportQueue.close();
+  await mailQueue.close();
+  await sweepQueue.close();
   await prisma.$disconnect();
   process.exit(0);
 }
@@ -102,7 +154,7 @@ process.on('SIGTERM', () => void shutdown());
 process.on('SIGINT', () => void shutdown());
 
 // A zip that can't be built (after retries) is marked FAILED so the UI can say so.
-workers[workers.length - 1]?.on('failed', (job) => {
+exportWorker.on('failed', (job) => {
   const data = job?.data as ExportJob | undefined;
   if (job && data && !data.expire && job.attemptsMade >= (job.opts.attempts ?? 1)) {
     void prisma.export

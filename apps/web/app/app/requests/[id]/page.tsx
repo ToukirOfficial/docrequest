@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Link2, Pencil, Send, Trash2, XCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  BellRing,
+  CheckCircle2,
+  Link2,
+  Pencil,
+  Send,
+  ShieldCheck,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
 import type { RequestDetail } from '@docrequest/shared';
 import { Field } from '@/components/field';
 import { FormError } from '@/components/form-error';
@@ -108,7 +118,8 @@ export default function RequestPage() {
               <RequestStatusBadge r={r} />
             </div>
             <p className="mt-1 text-[15px] text-muted-foreground">
-              {r.checklistName || 'Custom checklist'}, {r.clientEmail}
+              {r.checklistName || 'Custom checklist'}
+              {r.clientEmail ? `, ${r.clientEmail}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -177,6 +188,19 @@ export default function RequestPage() {
                 >
                   <Link2 /> {busy === 'send' ? 'Sending…' : 'Send a new link'}
                 </Button>
+                <Button
+                  variant="outline"
+                  disabled={!!busy}
+                  onClick={() =>
+                    void act(
+                      'remind',
+                      () => api<RequestDetail>(`${url}/remind`, { method: 'POST' }),
+                      'Reminder sent. It lists only what’s still missing.',
+                    )
+                  }
+                >
+                  <BellRing /> {busy === 'remind' ? 'Sending…' : 'Send a reminder'}
+                </Button>
               </>
             )}
           </div>
@@ -190,6 +214,17 @@ export default function RequestPage() {
         </Alert>
       )}
       <FormError message={error} />
+
+      {r.filesDeletedAt && (
+        <Alert>
+          <ShieldCheck />
+          <AlertDescription>
+            Files were deleted on {formatDateTime(r.filesDeletedAt)}, as set in your retention
+            settings. The client’s name and email were removed too. This request is kept only so
+            your counts add up.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <section className="grid gap-5 rounded-lg border bg-card p-5 shadow-xs sm:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] sm:p-6">
         <div>
@@ -283,6 +318,8 @@ export default function RequestPage() {
         )}
       </section>
 
+      {(r.reminders.length > 0 || r.nextReminderOn) && <Reminders r={r} />}
+
       <section className="rounded-lg border bg-card shadow-xs" aria-labelledby="documents">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <h2 id="documents" className="font-semibold text-ink">
@@ -344,5 +381,51 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium text-ink">{children}</dd>
     </div>
+  );
+}
+
+function reminderLabel(kind: string): string {
+  if (kind === 'DUE') return 'Due date reminder';
+  if (kind.startsWith('DAY_')) return `Day ${kind.slice(4)} reminder`;
+  return 'Reminder';
+}
+
+function Reminders({ r }: { r: RequestDetail }) {
+  const sent = r.reminders.filter((x) => x.emailed);
+  return (
+    <section className="rounded-lg border bg-card p-5 shadow-xs sm:p-6" aria-labelledby="reminders">
+      <h2 id="reminders" className="font-semibold text-ink">
+        Reminders
+      </h2>
+      <ol className="mt-4 grid gap-3 border-l pl-5">
+        {[...sent].reverse().map((x) => (
+          <li key={x.kind} className="relative text-sm">
+            <span
+              className="absolute top-1.5 -left-[25px] size-2.5 rounded-full bg-success"
+              aria-hidden="true"
+            />
+            <span className="font-medium text-ink">
+              {x.sentByName ? `Sent by ${x.sentByName}` : reminderLabel(x.kind)}
+            </span>
+            <span className="text-muted-foreground">, {formatDateTime(x.sentAt)}</span>
+          </li>
+        ))}
+        {r.nextReminderOn && (
+          <li className="relative text-sm">
+            <span
+              className="absolute top-1.5 -left-[25px] size-2.5 rounded-full border-2 border-brand bg-card"
+              aria-hidden="true"
+            />
+            <span className="font-medium text-ink">Next reminder</span>
+            <span className="text-muted-foreground">
+              , {formatDay(r.nextReminderOn)}, during the day
+            </span>
+          </li>
+        )}
+      </ol>
+      <p className="mt-4 text-xs text-muted-foreground">
+        Reminders list only what’s still missing, and stop as soon as everything is in.
+      </p>
+    </section>
   );
 }

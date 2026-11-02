@@ -59,6 +59,30 @@ export const mailTemplates = {
       `Hi ${p.clientName},\n\n${p.workspaceName} looked at "${p.itemTitle}" and asked you to send it again:\n\n"${p.reason}"\n\n` +
       `You can upload a new one here:\n${p.link}\n\nThis link replaces any earlier ones we sent you.${footer}`,
   }),
+  reminder: (
+    to: string,
+    p: {
+      clientName: string;
+      workspaceName: string;
+      missing: { title: string; retake: boolean }[];
+      dueDate: Date | null;
+      link: string;
+    },
+  ): MailMessage => {
+    const n = p.missing.length;
+    const list = p.missing
+      .map((m) => `  - ${m.title}${m.retake ? ' (please send it again)' : ''}`)
+      .join('\n');
+    return {
+      to,
+      subject: `Reminder: ${n} document${n === 1 ? '' : 's'} still needed for ${p.workspaceName}`,
+      text:
+        `Hi ${p.clientName},\n\n${p.workspaceName} is still waiting for:\n\n${list}\n\n` +
+        (p.dueDate ? `They're due by ${ukDate(p.dueDate)}. ` : '') +
+        `You can upload them here:\n${p.link}\n\nThis link replaces any earlier ones we sent you. ` +
+        `Documents you've already sent are safe and won't be asked for again.${footer}`,
+    };
+  },
   clientCode: (to: string, workspaceName: string, code: string): MailMessage => ({
     to,
     subject: `Your code for ${workspaceName}: ${code}`,

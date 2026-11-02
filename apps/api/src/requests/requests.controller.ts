@@ -106,6 +106,16 @@ export class RequestsController {
     return this.requests.send(m, u, p.requestId);
   }
 
+  @Post('requests/:requestId/remind')
+  @HttpCode(200)
+  remind(
+    @Param({ schema: requestParamsSchema }) p: RequestParams,
+    @CurrentMember() m: WorkspaceMember,
+    @CurrentUser() u: AuthUser,
+  ): Promise<RequestDetail> {
+    return this.requests.remind(m, u, p.requestId);
+  }
+
   @Post('requests/:requestId/cancel')
   @HttpCode(200)
   cancel(

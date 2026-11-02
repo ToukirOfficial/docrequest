@@ -32,6 +32,7 @@ import { randomToken, sha256 } from '../common/crypto.js';
 import type { AuthUser, WorkspaceMember } from '../common/decorators.js';
 import { DAY_MS, dateOnly, startOfWeekLondon, todayLondon } from '../common/dates.js';
 import { refreshRequestStatus } from './request-state.js';
+import { missingItems, nextReminderDate, recordReminder } from '../sweeps/reminders.js';
 
 const PAGE_SIZE = 20;
 const OPEN: RequestStatus[] = ['SENT', 'IN_PROGRESS'];
@@ -121,6 +122,8 @@ export class RequestsService {
           include: { files: { where: { deletedAt: null }, orderBy: { createdAt: 'asc' } } },
         },
         createdBy: { select: { name: true } },
+        reminders: { orderBy: { sentAt: 'desc' } },
+        workspace: { select: { reminderDays: true, dueReminderDays: true } },
       },
     });
     if (!r) throw new NotFoundException('Request not found');
@@ -132,6 +135,8 @@ export class RequestsService {
       expiredAt: r.expiredAt?.toISOString() ?? null,
       filesDeletedAt: r.filesDeletedAt?.toISOString() ?? null,
       createdByName: r.createdBy?.name ?? null,
+      reminders: await this.reminderRows(r.reminders),
+      nextReminderOn: nextReminderDate(r, r.workspace),
       items: r.items.map((i) => ({
         id: i.id,
         position: i.position,
@@ -290,6 +295,62 @@ export class RequestsService {
       }),
     );
     return this.get(member, r.id);
+  }
+
+  /** Sends a reminder now, listing only what's still missing. At most one manual reminder an hour. */
+  async remind(member: WorkspaceMember, user: AuthUser, requestId: string): Promise<RequestDetail> {
+    const r = await this.prisma.request.findFirst({
+      where: { id: requestId, workspaceId: member.workspaceId },
+      include: {
+        workspace: { select: { name: true } },
+        items: {
+          select: { title: true, required: true, status: true },
+          orderBy: { position: 'asc' },
+        },
+      },
+    });
+    if (!r) throw new NotFoundException('Request not found');
+    if (r.status !== 'SENT' && r.status !== 'IN_PROGRESS') {
+      throw new ConflictException(
+        'Reminders can only be sent for requests that are waiting on the client.',
+      );
+    }
+    if (missingItems(r.items).length === 0) {
+      throw new ConflictException('Nothing is missing, so there’s nothing to remind them about.');
+    }
+    const recent = await this.prisma.reminder.findFirst({
+      where: {
+        requestId: r.id,
+        emailed: true,
+        sentAt: { gt: new Date(Date.now() - 60 * 60 * 1000) },
+      },
+    });
+    if (recent)
+      throw new ConflictException(
+        'A reminder went out less than an hour ago. Please wait before sending another.',
+      );
+    const mail = await this.prisma.$transaction((tx) =>
+      recordReminder(tx, r, [`MANUAL:${new Date().toISOString()}`], { type: 'USER', id: user.id }),
+    );
+    if (mail) await this.mail.send(mail);
+    return this.get(member, r.id);
+  }
+
+  private async reminderRows(
+    rows: { kind: string; sentAt: Date; sentById: string | null; emailed: boolean }[],
+  ) {
+    const ids = [...new Set(rows.map((x) => x.sentById).filter((x): x is string => !!x))];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(users.map((u) => [u.id, u.name]));
+    return rows.map((x) => ({
+      kind: x.kind,
+      sentAt: x.sentAt.toISOString(),
+      sentByName: x.sentById ? (names.get(x.sentById) ?? null) : null,
+      emailed: x.emailed,
+    }));
   }
 
   /** Stops the link working. Files are then deleted by the retention schedule. */

@@ -37,7 +37,10 @@ export type AuditAction =
   | 'item.accepted'
   | 'item.rejected'
   | 'export.created'
-  | 'export.downloaded';
+  | 'export.downloaded'
+  | 'reminder.sent'
+  | 'request.expired'
+  | 'retention.files_deleted';
 
 export interface AuditEntry {
   workspaceId?: string | null;

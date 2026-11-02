@@ -104,6 +104,10 @@ export interface RequestDetail extends RequestSummary {
   filesDeletedAt: string | null;
   createdByName: string | null;
   items: RequestItem[];
+  /** Newest first. Automatic kinds: "DAY_2", "DUE". Manual: "MANUAL:…". */
+  reminders: { kind: string; sentAt: string; sentByName: string | null; emailed: boolean }[];
+  /** UK date of the next automatic reminder, or null when none is coming. */
+  nextReminderOn: string | null;
 }
 
 export interface RequestList {

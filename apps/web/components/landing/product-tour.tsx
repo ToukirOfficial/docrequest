@@ -67,7 +67,7 @@ const STEPS: Step[] = [
     id: 'remind',
     label: 'Reminders',
     title: 'Reminders go out by themselves',
-    body: 'Set the schedule once (by default 2, 5 and 7 days). Each reminder lists only what is still missing, and they stop when the request is complete.',
+    body: 'Set the schedule once (by default 2, 5 and 7 days). Each reminder lists only what is still missing, and they stop as soon as everything is in.',
     focus: 'client',
   },
   {
@@ -536,8 +536,8 @@ function StaffPane({ id }: { id: StepId }) {
             ))}
           </ol>
           <p className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-[11px] text-muted-foreground">
-            <AlarmClock className="size-3.5 text-brand" /> Reminders stop as soon as every document
-            is accepted.
+            <AlarmClock className="size-3.5 text-brand" /> Reminders stop as soon as everything is
+            in.
           </p>
         </div>
       );

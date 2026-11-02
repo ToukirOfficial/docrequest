@@ -204,6 +204,7 @@ model Request {
   items         RequestItem[]
   files         File[]
   exports       Export[]
+  reminders     Reminder[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, createdAt])
@@ -281,4 +282,24 @@ model Export {
   @@index([requestId])
   @@index([workspaceId])
   @@index([status, expiresAt])
+}
+
+/// One row per reminder sent. Automatic kinds ("DAY_2", "DUE") are unique per request,
+/// so a reminder can never be sent twice, even if two sweeps run at once.
+/// Manual reminders use "MANUAL:<time>".
+model Reminder {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  requestId   String   @db.Uuid
+  workspaceId String   @db.Uuid
+  kind        String
+  /// False when a late sweep skipped an older reminder in favour of the newest one.
+  emailed     Boolean  @default(true)
+  sentById    String?  @db.Uuid
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, kind])
+  @@index([workspaceId])
 }

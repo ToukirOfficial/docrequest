@@ -18,7 +18,7 @@ Every table: UUIDv7 `id`, `createdAt`, `updatedAt` (UTC). Every tenant table has
 | `Request` | workspaceId, createdById, checklistName, clientName, clientEmail, dueDate?, message?, status `DRAFT/SENT/IN_PROGRESS/COMPLETE/EXPIRED`, linkHash (unique), linkExpiresAt, sentAt, completedAt, expiredAt, filesDeletedAt |
 | `RequestItem` | requestId, workspaceId, position, title, helpText, required, allowedTypes, status `PENDING/SUBMITTED/ACCEPTED/REJECTED`, rejectReason |
 | `File` | requestItemId, workspaceId, storageKey (random), wrappedKey, iv, authTag, mimeType, size, originalExt, scanStatus `PENDING/CLEAN/INFECTED/SKIPPED`, deletedAt. Infected → stored bytes deleted, row kept with `INFECTED`, item back to `PENDING`, client sees "this file couldn't be accepted, please upload it again", audit entry. |
-| `Reminder` | requestId, kind (`DAY_2`, `DUE`, `MANUAL`…), sentAt — unique (requestId, kind) for auto kinds, so a reminder can never send twice |
+| `Reminder` | requestId, kind (`DAY_2`, `DUE`, `MANUAL:<time>`), emailed, sentById, sentAt — unique (requestId, kind), so a reminder can never send twice |
 | `Export` | requestId, workspaceId, storageKey, wrappedKey, iv, authTag, status, expiresAt — zip encrypted with the same envelope encryption as uploads, deleted after 1 hour |
 | `AuditLog` | workspaceId, actorType `USER/CLIENT/SYSTEM`, actorId?, action, entityType, entityId, requestId? (activity feed), at — append-only (DB trigger blocks UPDATE/DELETE, added via a Prisma `--create-only` migration). Never file names or client details. |
 
@@ -53,7 +53,7 @@ GET/PATCH w/:wid/settings                                               (Owner/A
 GET  w/:wid/members · PATCH/DELETE w/:wid/members/:id · POST w/:wid/invites (Owner/Admin)
 GET/POST w/:wid/templates · GET/PUT/DELETE w/:wid/templates/:id          (write: Owner/Admin)
 GET w/:wid/dashboard · GET/POST w/:wid/requests · GET/PATCH/DELETE w/:wid/requests/:id
-PUT  w/:wid/requests/:id/items · POST w/:wid/requests/:id/send|remind|cancel
+PUT  w/:wid/requests/:id/items · POST w/:wid/requests/:id/send|remind|cancel|export
 POST w/:wid/requests/:id/items/:itemId/accept|reject
 GET  w/:wid/files/:fileId (stream, audited; Content-Disposition, nosniff, sandboxed CSP)
 POST w/:wid/requests/:id/export · GET w/:wid/exports/:id · GET w/:wid/exports/:id/download
@@ -107,7 +107,7 @@ Tests: link/code security (expiry, wrong code, attempts, session scoped to one r
 **Phase 4 — Review and download.** ✅ Done. Retakes delete the rejected files and email the reason with a fresh link (links are stored only as hashes, so every email that needs a link carries a new one and older links stop working). PDFs open in a new tab with a strict CSP but no sandbox (browser PDF viewers break under it); images are sandboxed. Zips are built by the worker, encrypted, and deleted after 1 hour. Preview through API (only `CLEAN`/`SKIPPED` files), accept/reject with reason, completion rule, zip export job with clean names (`smith-jane_passport.pdf`), audit entries + audit page.
 Tests: file access permissions and isolation, infected or unscanned files never previewable/downloadable, exports respect workspace isolation, completion rule, audit rows never contain client names, emails or file names.
 
-**Phase 5 — Reminders, expiry, retention.** Hourly reminder sweep (workspace schedule + before-due, stop on complete, idempotent), manual remind, daily expiry + retention deletion: files deleted, `clientName`/`clientEmail` anonymised, request row kept for counts only, audited.
+**Phase 5 — Reminders, expiry, retention.** ✅ Done. BullMQ job schedulers (Europe/London): reminders hourly at :05, expiry hourly at :35, retention daily at 03:15. `Reminder` rows with a unique (requestId, kind) key make double sends impossible. Hourly reminder sweep (workspace schedule + before-due, stop on complete, idempotent), manual remind, daily expiry + retention deletion: files deleted, `clientName`/`clientEmail` anonymised, request row kept for counts only, audited.
 Tests: reminder scheduling, retention deletion, retention anonymises client details.
 
 **Phase 6 — Demo mode and self-hosting.** Demo seed with realistic fake businesses, client names and real-looking fake documents, banner, one-click demo login, signup off, read-only settings/team, mail viewer, 2 MB limit, hourly purge, nightly reset. Dockerfiles + full `docker-compose.yml` (web, api, worker, postgres, redis, clamav). `infra/aws` Terraform (S3, KMS, RDS, small EC2) + teardown. README per PRD §6, `ASSUMPTIONS.md`, `docs/decisions/`.
