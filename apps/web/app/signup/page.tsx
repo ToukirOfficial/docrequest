@@ -8,11 +8,13 @@ import { Field, linkClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { usePublicConfig } from '@/lib/config';
 
 export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const config = usePublicConfig();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,6 +43,22 @@ export default function SignupPage() {
       title="Create your workspace"
       description="Free and open source. It takes about a minute, and you can invite your team after."
     >
+      {config && !config.signupEnabled && (
+        <div className="mb-6 rounded-xl border bg-background p-5 text-sm leading-relaxed text-muted-foreground">
+          <p className="font-semibold text-ink">Sign-up is turned off here</p>
+          {config.demo ? (
+            <p className="mt-1">
+              This is the public demo.{' '}
+              <Link href="/login" className={linkClass}>
+                Try it as Priya
+              </Link>{' '}
+              instead, or install DocRequest on your own server.
+            </p>
+          ) : (
+            <p className="mt-1">Ask an owner or admin of your workspace to invite you.</p>
+          )}
+        </div>
+      )}
       <form onSubmit={onSubmit} className="grid gap-5">
         <FormError message={error} />
         <Field

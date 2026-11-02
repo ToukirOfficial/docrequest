@@ -20,7 +20,8 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const DEMO_URL = 'https://docrequest.toukirahmedrony.com';
+// The demo's sign-in page has a one-click "Try the demo as Priya".
+const DEMO_URL = 'https://docrequest.toukirahmedrony.com/login';
 const GITHUB_URL = 'https://github.com/toukirofficial/docrequest';
 
 export const metadata: Metadata = {

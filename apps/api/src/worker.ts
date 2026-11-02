@@ -14,6 +14,9 @@ import {
 import { EXPORT_TTL_MS, buildExport, expireExport } from './files/export.js';
 import { reminderSweep } from './sweeps/reminders.js';
 import { expirySweep, retentionSweep } from './sweeps/retention.js';
+import { env } from './config/env.js';
+import { DEMO_SEEDED_AT_KEY, purgeVisitorUploads, resetDemo, seedDemo } from './demo/seed.js';
+import { RedisService } from './common/redis.service.js';
 import { createMailSender } from './mail/mail.sender.js';
 import type { MailMessage } from './mail/templates.js';
 import { PrismaService } from './common/prisma.service.js';
@@ -22,6 +25,8 @@ import { convertFile, rejectUnreadable, scanFile } from './files/pipeline.js';
 const logger = new Logger('Worker');
 const sendMail = createMailSender();
 const prisma = new PrismaService();
+const redis = new RedisService();
+const markSeeded = async (at: Date) => void (await redis.set(DEMO_SEEDED_AT_KEY, at.toISOString()));
 const convertQueue = new Queue<FileJob>(CONVERT_QUEUE, {
   connection: bullConnection(),
   prefix: QUEUE_PREFIX,
@@ -117,6 +122,15 @@ const sweeps = new Worker(
     if (job.name === 'reminders') return { sent: await reminderSweep(deps) };
     if (job.name === 'expiry') return { expired: await expirySweep(deps) };
     if (job.name === 'retention') return { deleted: await retentionSweep(deps) };
+    if (job.name === 'demo-reset') {
+      await resetDemo(prisma, markSeeded);
+      await redis.del('demo:mail');
+      return { reset: true };
+    }
+    if (job.name === 'demo-purge') {
+      const seededAt = await redis.get(DEMO_SEEDED_AT_KEY);
+      return { purged: seededAt ? await purgeVisitorUploads(prisma, new Date(seededAt)) : 0 };
+    }
   },
   { ...opts, concurrency: 1 },
 );
@@ -139,6 +153,28 @@ await sweepQueue.upsertJobScheduler(
   { name: 'retention' },
 );
 
+// Demo mode (PRD §3, item 21): seed on first start, purge visitor uploads hourly, reset nightly.
+if (env.DEMO_MODE) {
+  if ((await prisma.workspace.count()) === 0) {
+    await seedDemo(prisma);
+    await markSeeded(new Date());
+    logger.log('Demo workspace seeded');
+  }
+  await sweepQueue.upsertJobScheduler(
+    'demo-purge',
+    { pattern: '50 * * * *', tz: 'Europe/London' },
+    { name: 'demo-purge' },
+  );
+  await sweepQueue.upsertJobScheduler(
+    'demo-reset',
+    { pattern: '0 2 * * *', tz: 'Europe/London' },
+    { name: 'demo-reset' },
+  );
+} else {
+  await sweepQueue.removeJobScheduler('demo-purge');
+  await sweepQueue.removeJobScheduler('demo-reset');
+}
+
 logger.log('Worker started');
 
 async function shutdown(): Promise<void> {
@@ -148,6 +184,7 @@ async function shutdown(): Promise<void> {
   await mailQueue.close();
   await sweepQueue.close();
   await prisma.$disconnect();
+  await redis.quit();
   process.exit(0);
 }
 process.on('SIGTERM', () => void shutdown());

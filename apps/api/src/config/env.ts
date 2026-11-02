@@ -41,6 +41,7 @@ const schema = z.object({
 });
 
 export type Env = z.infer<typeof schema>;
+export const DEMO_MAX_UPLOAD_MB = 2;
 
 function load(): Env {
   const parsed = schema.safeParse(process.env);
@@ -49,6 +50,12 @@ function load(): Env {
     throw new Error(`Invalid environment:\n${problems.join('\n')}`);
   }
   const e = parsed.data;
+  if (e.DEMO_MODE) {
+    // The public demo never sends real email and only takes small uploads (PRD §3, item 21).
+    e.MAIL_DRIVER = 'file';
+    e.MAX_UPLOAD_MB = Math.min(e.MAX_UPLOAD_MB, DEMO_MAX_UPLOAD_MB);
+    e.SIGNUP_ENABLED = false;
+  }
   if (e.KEY_DRIVER === 'env') {
     const key = e.MASTER_KEY ? Buffer.from(e.MASTER_KEY, 'base64') : undefined;
     if (!key || key.length !== 32) {

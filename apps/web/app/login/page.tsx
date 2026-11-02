@@ -8,11 +8,25 @@ import { Field, linkClass } from '@/components/field';
 import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { usePublicConfig } from '@/lib/config';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const config = usePublicConfig();
+
+  async function demoLogin() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api('/demo/login', { method: 'POST' });
+      router.push('/app');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,6 +50,22 @@ export default function LoginPage() {
       title="Sign in"
       description="Enter your email and password. We'll then send a 6‑digit code to your inbox."
     >
+      {config?.demo && (
+        <div className="mb-8 rounded-xl border border-brand/25 bg-brand-soft p-5">
+          <p className="font-semibold text-ink">Take a look around</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Sign in as Priya, who runs a made-up letting agency. No email or password needed.
+          </p>
+          <Button
+            size="lg"
+            className="mt-4 w-full"
+            onClick={() => void demoLogin()}
+            disabled={busy}
+          >
+            {busy ? 'Opening the demo…' : 'Try the demo as Priya'}
+          </Button>
+        </div>
+      )}
       <form onSubmit={onSubmit} className="grid gap-5">
         <FormError message={error} />
         <Field id="email" label="Email" type="email" autoComplete="email" required />

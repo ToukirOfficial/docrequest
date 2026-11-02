@@ -286,7 +286,7 @@ export class RequestsService {
     });
     await this.mail.send(
       mailTemplates.requestLink(r.clientEmail, {
-        clientName: r.clientName,
+        clientName: r.clientName.split(/\s+/)[0] ?? r.clientName,
         workspaceName: workspace.name,
         itemCount,
         dueDate: r.dueDate,
