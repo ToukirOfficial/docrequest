@@ -70,7 +70,7 @@ Client (mobile-first, WCAG 2.2 AA): `/r/[token]` → code entry → checklist wi
 
 ## Phases
 
-**Phase 1 — Foundations, auth, workspaces, roles.** pnpm + Turborepo monorepo, strict TS, ESLint/Prettier, GitHub Actions CI, dev `docker-compose` (Postgres, Redis). Prisma: User, Workspace, Membership, Invite, RefreshToken, AuditLog. Auth flow with email code, refresh rotation + reuse detection, password reset, global guards, rate limiter, mail queue + worker, team/invite/settings. Web: auth pages, app shell, team, settings.
+**Phase 1 — Foundations, auth, workspaces, roles.** ✅ Done. pnpm + Turborepo monorepo, strict TS, ESLint/Prettier, GitHub Actions CI, dev `docker-compose` (Postgres, Redis). Prisma: User, Workspace, Membership, Invite, RefreshToken, AuditLog. Auth flow with email code, refresh rotation + reuse detection, password reset, global guards, rate limiter, mail queue + worker, team/invite/settings. Web: auth pages, app shell, team, settings.
 Tests: login + code + refresh/reuse, role rules, workspace isolation, rate limits.
 
 **Phase 2 — Templates and requests.** Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard with filters/search/overdue.
