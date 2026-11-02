@@ -1,16 +1,23 @@
 import type { Metadata } from 'next';
+import { Public_Sans } from 'next/font/google';
 import './globals.css';
 
+const publicSans = Public_Sans({
+  subsets: ['latin'],
+  variable: '--font-public-sans',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'DocRequest',
-  description: 'Collect documents from clients securely.',
+  title: { default: 'DocRequest', template: '%s · DocRequest' },
+  description: 'Collect documents from clients securely, on your own server.',
   robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en-GB" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+    <html lang="en-GB" className={`${publicSans.variable} h-full antialiased`}>
+      <body className="min-h-full font-sans">{children}</body>
     </html>
   );
 }

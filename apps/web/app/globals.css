@@ -1,13 +1,20 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * DocRequest design tokens. Every colour, font, radius and shadow in the UI
+ * comes from here (plan.md "Design system"). Components never use raw colours.
+ */
 @theme inline {
+  --font-sans:
+    var(--font-public-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -24,53 +31,108 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Brand */
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-paper: var(--paper);
+
+  /* Status (badges, progress, alerts) */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Neutral shadows only. */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 2px 4px rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.08);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.48 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.55 0.22 27);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ink: #0f1e3a;
+  --ink-soft: #1b2d52;
+  --brand: #0b7a53;
+  --brand-strong: #086444;
+  --brand-soft: #e6f3ed;
+  --paper: #f5f7fa;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: #edf0f5;
+  --secondary-foreground: var(--ink);
+  --muted: #edf0f5;
+  --muted-foreground: #5a6478;
+  --accent: #edf0f5;
+  --accent-foreground: var(--ink);
+  --destructive: #c0352b;
+  --border: #e2e6ee;
+  --input: #d5dbe5;
+  --ring: var(--brand);
+
+  --success: #0b7a53;
+  --success-soft: #e6f3ed;
+  --warning: #a15c07;
+  --warning-soft: #fdf3e2;
+  --danger: #c0352b;
+  --danger-soft: #fcebe9;
+  --info: #2457c5;
+  --info-soft: #e9effc;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ink: #e8edf6;
+  --ink-soft: #c5cfe0;
+  --brand: #34b383;
+  --brand-strong: #4cc796;
+  --brand-soft: #123528;
+  --paper: #0b1428;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #111c34;
+  --card-foreground: var(--ink);
+  --popover: #111c34;
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: #06140e;
+  --secondary: #1a2742;
+  --secondary-foreground: var(--ink);
+  --muted: #1a2742;
+  --muted-foreground: #97a3ba;
+  --accent: #1a2742;
+  --accent-foreground: var(--ink);
+  --destructive: #f07167;
+  --border: #22304d;
+  --input: #2c3b5b;
+  --ring: var(--brand);
+
+  --success: #34b383;
+  --success-soft: #123528;
+  --warning: #e8a547;
+  --warning-soft: #3a2a10;
+  --danger: #f07167;
+  --danger-soft: #3d1715;
+  --info: #7aa2f7;
+  --info-soft: #172744;
 }
 
 @layer base {
@@ -79,5 +141,14 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--ink);
   }
 }
