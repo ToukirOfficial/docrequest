@@ -63,8 +63,28 @@ GET  client/request · POST client/items/:itemId/files · DELETE client/files/:i
 GET  demo/mail · POST demo/login                                        (public, DEMO_MODE only)
 ```
 
+## Design system (`apps/web`, PRD §5)
+
+Defined once as Tailwind theme tokens in `app/globals.css`; shadcn/ui components read only these tokens, never raw colours.
+
+| Token | Value | Use |
+|---|---|---|
+| `ink` / `foreground` | `#0F1E3A` deep navy | text, headings, auth panel |
+| `brand` / `primary` | `#0B7A53` green | primary buttons, links, focus ring, "secure" moments |
+| `brand-soft` | `#E6F3ED` | secure notes, success backgrounds |
+| `paper` / `background` | `#F5F7FA` cool neutral | page background (cards are white) |
+| `border` | `#E2E6EE` | hairlines, inputs |
+| `muted-foreground` | `#5A6478` slate | secondary text |
+| status | green / amber / red / blue / slate | status badges: Complete / Overdue / Rejected / In progress / Draft |
+
+- **Type:** Public Sans (OFL) via `next/font`, one family. Scale 13 / 14 / 16 / 20 / 24 / 32 / 44 px; tabular numbers for counts and codes.
+- **Shape:** radius 8 px controls, 12 px cards, 16 px panels. Shadows neutral grey only, buttons flat.
+- **Logo:** SVG mark (document with a folded corner and a tick) + "DocRequest" wordmark in `components/logo.tsx`; same mark as `app/icon.svg`.
+- **Patterns:** every list has an empty state with a next action; loading uses skeletons, never spinners; errors say what happened and how to fix it.
+
 ## Pages (`apps/web`, shadcn/ui; `/api/*` proxied to the API so cookies stay first-party)
 
+Public: `/` landing page (Phase 6; until then `/` redirects to `/app`).
 Staff: `/login`, `/login/code`, `/signup`, `/forgot-password`, `/reset-password`, `/invite/[token]`, `/app` (requests dashboard: status filter, search), `/app/requests/new`, `/app/requests/[id]` (items, previews, accept/reject, zip, remind), `/app/templates`, `/app/templates/[id]`, `/app/team`, `/app/settings`, `/app/audit`.
 Client (mobile-first, WCAG 2.2 AA): `/r/[token]` → code entry → checklist with camera/file upload per item, progress bar, rejection reasons. Demo: banner on all pages, `/demo/mail`.
 
@@ -73,10 +93,12 @@ Client (mobile-first, WCAG 2.2 AA): `/r/[token]` → code entry → checklist wi
 **Phase 1 — Foundations, auth, workspaces, roles.** ✅ Done. pnpm + Turborepo monorepo, strict TS, ESLint/Prettier, GitHub Actions CI, dev `docker-compose` (Postgres, Redis). Prisma: User, Workspace, Membership, Invite, RefreshToken, AuditLog. Auth flow with email code, refresh rotation + reuse detection, password reset, global guards, rate limiter, mail queue + worker, team/invite/settings. Web: auth pages, app shell, team, settings.
 Tests: login + code + refresh/reuse, role rules, workspace isolation, rate limits.
 
-**Phase 2 — Templates and requests.** Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard with filters/search/overdue.
+**Phase 1b — Design foundation.** ✅ Done. Theme tokens, Public Sans, logo + icon, themed shadcn/ui components. Restyled to the design system: split sign-in layout (login, code, signup, forgot/reset password, invite) with a product preview panel, app shell (sidebar on desktop, slide-in menu on phones), team, settings, requests empty state. Copy rewritten in plain UK English.
+
+**Phase 2 — Templates and requests.** Template/Request models, 5 built-in templates, create/edit/send request, secure link (32 random bytes, SHA-256 hash, expiry), request email, dashboard to PRD §5: stat cards (open, waiting for review, overdue, completed this week), "Needs your attention" list, request rows with progress bars ("3 of 5 documents") and colour-coded status badges, recent activity feed (from the audit log, no client details), empty states and skeletons.
 Tests: isolation + roles on templates/requests, link stored only as hash.
 
-**Phase 3 — Client upload and secure storage.** Client link → code → session, storage adapter (local/S3), AES-256-GCM per-file key wrapped by master key (env or KMS), magic-byte type check, size limit, scan + convert jobs (scan switchable by `CLAMAV_ENABLED`), client upload UI.
+**Phase 3 — Client upload and secure storage.** Client link → code → session, storage adapter (local/S3), AES-256-GCM per-file key wrapped by master key (env or KMS), magic-byte type check, size limit, scan + convert jobs (scan switchable by `CLAMAV_ENABLED`), client upload UI to PRD §5: business name and logo, friendly intro, checklist with big upload buttons, progress bar, kind rejection reasons, "Your files are encrypted" note, "All done" screen.
 Tests: link/code security (expiry, wrong code, attempts, session scoped to one request), encryption round-trip, wrong-key fails.
 
 **Phase 4 — Review and download.** Preview through API (only `CLEAN`/`SKIPPED` files), accept/reject with reason, completion rule, zip export job with clean names (`smith-jane_passport.pdf`), audit entries + audit page.
@@ -85,7 +107,7 @@ Tests: file access permissions and isolation, infected or unscanned files never 
 **Phase 5 — Reminders, expiry, retention.** Hourly reminder sweep (workspace schedule + before-due, stop on complete, idempotent), manual remind, daily expiry + retention deletion: files deleted, `clientName`/`clientEmail` anonymised, request row kept for counts only, audited.
 Tests: reminder scheduling, retention deletion, retention anonymises client details.
 
-**Phase 6 — Demo mode and self-hosting.** Demo seed with fake files, banner, one-click demo login, signup off, read-only settings/team, mail viewer, 2 MB limit, hourly purge, nightly reset. Dockerfiles + full `docker-compose.yml` (web, api, worker, postgres, redis, clamav). `infra/aws` Terraform (S3, KMS, RDS, small EC2) + teardown. README per PRD §5, `ASSUMPTIONS.md`, `docs/decisions/`.
+**Phase 6 — Demo mode and self-hosting.** Landing page at `/` per PRD §5 (headline, product preview, how it works in 3 steps, security, who it's for, self-hosting command, AGPL note, "Try the live demo" and "View on GitHub", footer). Demo seed with realistic fake businesses, client names and real-looking fake documents, banner, one-click demo login, signup off, read-only settings/team, mail viewer, 2 MB limit, hourly purge, nightly reset. Dockerfiles + full `docker-compose.yml` (web, api, worker, postgres, redis, clamav). `infra/aws` Terraform (S3, KMS, RDS, small EC2) + teardown. README per PRD §6, `ASSUMPTIONS.md`, `docs/decisions/`.
 
 Each phase ends with: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`, security sweep, `pnpm audit`, then marked done here.
 

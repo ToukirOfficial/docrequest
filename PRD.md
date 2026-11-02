@@ -66,15 +66,50 @@ Accountants, solicitors, recruiters, letting agents and care agencies need docum
 - UK English, dates shown in Europe/London.
 - No real personal data in seeds, tests, logs or screenshots.
 
-## 5. README must include
+## 5. Design and landing page
+
+This is also a portfolio project: people judge it in 30 seconds, so it must look like a real, polished product, not a default template.
+
+**Brand**
+- DocRequest wordmark logo (simple SVG).
+- Calm, trustworthy palette: deep navy for text and headers, one green accent for primary actions and "secure" moments, soft neutral backgrounds.
+- A clean, free, open-licence font. Light theme first; dark theme optional.
+
+**Landing page at `/`**
+- Headline "Stop chasing clients for documents", with a subline about secure, self-hosted document collection.
+- Product preview image.
+- "How it works" in 3 steps.
+- Security: encryption, virus scanning, metadata stripping, auto-delete, audit log.
+- Who it's for: accountants, solicitors, recruiters, letting agents, care agencies.
+- Self-hosting with the `docker compose` command, and an open-source note (AGPL).
+- Buttons "Try the live demo" and "View on GitHub". Simple footer.
+
+**Staff dashboard**
+- Stat cards: open requests, waiting for review, overdue, completed this week.
+- A "Needs your attention" list.
+- Requests with progress bars ("3 of 5 documents") and colour-coded status badges.
+- Recent activity feed.
+
+**Client upload page (mobile-first)**
+- Business name and logo at the top, a friendly intro.
+- A clear checklist with big upload buttons and a progress bar.
+- Rejection reasons shown kindly.
+- A reassuring "Your files are encrypted" note, and a clear "All done" screen.
+
+**Everywhere**
+- Every list has a helpful empty state with a next action.
+- Loading skeletons, not spinners.
+- Demo data looks realistic: believable fake businesses and client names, real-looking (fake) documents.
+
+## 6. README must include
 
 What it does (with a short demo GIF), why it exists, run it locally, self-host with Docker, deploy to AWS, how security works (encryption, keys, retention), hard problems and how they were solved, decisions, tests. Plain, simple English, same standard as the Slotwise repo.
 
-## 6. Out of scope for version 1
+## 7. Out of scope for version 1
 
 E-signatures, client accounts, payments, OCR or AI checks on documents, integrations (Xero, Google Drive), white-label custom domains, native mobile apps.
 
-## 7. Done means
+## 8. Done means
 
 - A business can create a request from a template, a client can upload from a phone, staff can review, reject, accept and download a zip, reminders send, and files delete on schedule.
 - Tests pass for login, permissions, workspace isolation, link and code security, encryption round-trip, and retention deletion.
